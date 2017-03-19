@@ -34,10 +34,5 @@
 *.out
 *.app
 
-*.jpg
-*.png
-*.tif
-*.dds
-*.tga
-*.bmp
+
 *.obj
