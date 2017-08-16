@@ -770,6 +770,150 @@ bool trace_ray(
     return false;
 }
 
+/////////////////////////////////////////
+#define MAX_ITERATIONS 28
+#define HIZ_START_LEVEL 0
+#define HIZ_STOP_LEVEL 0
+#define HIZ_MAX_LEVEL 7
+vec2 cell(vec2 ray, vec2 cell_count, uint camera) {
+    return floor(ray.xy * cell_count);
+}
+
+vec2 cell_count(float level) {
+    return vec2(screenWidth, screenHeight) / (level == 0.0 ? 1.0 : exp2(level));
+}
+
+vec3 intersect_cell_boundary(vec3 pos, vec3 dir, vec2 cell_id, vec2 cell_count, vec2 cross_step, vec2 cross_offset, uint camera) {
+    vec2 cell_size = 1.0 / cell_count;
+    vec2 planes = cell_id/cell_count + cell_size * cross_step;
+
+    vec2 solutions = (planes - pos.xy)/dir.xy;
+    vec3 intersection_pos = pos + dir * min(solutions.x, solutions.y);
+
+    intersection_pos.xy += (solutions.x < solutions.y) ? vec2(cross_offset.x, 0.0) : vec2(0.0, cross_offset.y);
+
+    return intersection_pos;
+}
+
+bool crossed_cell_boundary(vec2 cell_id_one, vec2 cell_id_two) {
+    return int(cell_id_one.x) != int(cell_id_two.x) || int(cell_id_one.y) != int(cell_id_two.y);
+}
+
+float minimum_depth_plane(vec2 ray, float level, vec2 cell_count, uint camera) {
+    //return input_texture2.Load(int3(vr_stereo_to_mono(ray.xy, camera) * cell_count, level)).r;
+    return -texture(sceneDepth, ray.xy).r*far;
+    //return -LinearizeDepth( textureLod(sceneDepth, ray.xy,level).r) * far; 
+}
+
+
+
+bool trace_ray_HIZ(
+
+    point3 csOrig, 
+    vec3 csDir,
+    mat4x4 proj, 
+    sampler2D csZBuffer,
+    vec2 csZBufferSize,
+ float zThickness, 
+ float nearPlaneZ, 
+ float stride,
+ float jitter,
+ const float maxSteps, 
+ float maxDistance, 
+ out point2 hitPixel,
+ out point3 hitPoint,
+ out vec3 P00
+    )
+{
+
+    vec4 psPosition = ProjectionMatrix * vec4(csOrig, 1.0f);
+    vec3 ndcsPosition = psPosition.xyz / psPosition.w;
+    vec3 ssPosition = 0.5f * ndcsPosition + 0.5f;
+    //csDir=reflect()
+
+
+    csDir = csOrig+csDir/10;
+    vec4 psReflectionVector = ProjectionMatrix * vec4(csDir, 1.0);
+    vec3 ndcEndPoint = psReflectionVector.xyz / psReflectionVector.w;
+    vec3 ssEndPoint = 0.5f * ndcEndPoint + 0.5f;
+    //ssReflectionVector = normalize(ssReflectionVector - ssPosition);
+
+    vec3 ray_start=ssPosition;
+    vec3 ray_end=ssEndPoint;
+    vec3 ray_dir=ray_end-ray_start;
+    //ray_start.z=LinearizeDepth(ray_start.z);
+    
+    //ray_end.z=LinearizeDepth(ray_end.z);   
+
+    //if (ray_dir.z < 0.0) {
+    //    return vec3(0);
+    //}
+    vec3 p=ssPosition;
+    vec3 v=ray_dir;
+    uint camera=uint(1);
+
+    float level = HIZ_START_LEVEL;
+    vec3 v_z = v/v.z;
+    vec2 hi_z_size = cell_count(level);
+    vec3 ray = p;
+
+    vec2 cross_step = vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
+    vec2 cross_offset = cross_step * 0.00001;
+  //cross_step = saturate(cross_step);
+    cross_step = clamp(cross_step, 0.0, 1.0);
+
+    vec2 ray_cell = cell(ray.xy, hi_z_size.xy, camera);
+    ray = intersect_cell_boundary(ray, v, ray_cell, hi_z_size, cross_step, cross_offset, camera);
+
+    int iterations = 0;
+    while(level >= HIZ_STOP_LEVEL && iterations < MAX_ITERATIONS) 
+    {
+    // get the cell number of the current ray
+        vec2 current_cell_count = cell_count(level);
+        vec2 old_cell_id = cell(ray.xy, current_cell_count, camera);
+
+    // get the minimum depth plane in which the current ray resides
+        float min_z = minimum_depth_plane(ray.xy, level, current_cell_count, camera);
+
+    // intersect only if ray depth is below the minimum depth plane
+        vec3 tmp_ray = ray;
+        if(v.z > 0) 
+        {
+            float min_minus_ray = min_z - ray.z;
+            tmp_ray = min_minus_ray > 0 ? ray + v_z*min_minus_ray : tmp_ray;
+            vec2 new_cell_id = cell(tmp_ray.xy, current_cell_count, camera);
+            if(crossed_cell_boundary(old_cell_id, new_cell_id)) 
+            {
+                tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
+                level = min(HIZ_MAX_LEVEL, level + 2.0f);
+            }else
+            {
+
+                if(level == 1 && abs(min_minus_ray) > 0.0001) 
+                {
+                    tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
+                    level = 2;
+                }
+            }
+        }else if(ray.z < min_z) 
+        {
+            tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
+            level = min(HIZ_MAX_LEVEL, level + 2.0f);
+        }
+
+        ray.xyz = tmp_ray.xyz;
+        --level;
+
+        ++iterations;
+    }
+    hitPixel=ray.xy;
+    hitPoint=ray;
+    //if(level<HIZ_STOP_LEVEL || iterations >= MAX_ITERATIONS)
+    //    return false;
+    //else 
+        return true;
+}
+
 vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
 {
 
@@ -846,7 +990,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
         //dir=normalize(reflect(normalize(vsPosition.xyz),normalize(vsNormal.xyz)));
         //return vec4(normalize(dir),1);
 
-        bool isHit=trace_ray(vsPosition.xyz,
+        bool isHit=trace_ray_HIZ(vsPosition.xyz,
             dir,
             ProjectionMatrix,
             sceneDepth,
