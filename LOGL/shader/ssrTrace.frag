@@ -771,10 +771,10 @@ bool trace_ray(
 }
 
 /////////////////////////////////////////
-#define MAX_ITERATIONS 28
-#define HIZ_START_LEVEL 0
+#define MAX_ITERATIONS 30
+#define HIZ_START_LEVEL 1
 #define HIZ_STOP_LEVEL 0
-#define HIZ_MAX_LEVEL 7
+#define HIZ_MAX_LEVEL 10
 vec2 cell(vec2 ray, vec2 cell_count, uint camera) {
     return floor(ray.xy * cell_count);
 }
@@ -801,7 +801,7 @@ bool crossed_cell_boundary(vec2 cell_id_one, vec2 cell_id_two) {
 
 float minimum_depth_plane(vec2 ray, float level, vec2 cell_count, uint camera) {
     //return input_texture2.Load(int3(vr_stereo_to_mono(ray.xy, camera) * cell_count, level)).r;
-    return texture(sceneDepth, ray.xy).r;
+    return textureLod(sceneDepth, ray.xy, level).r;
     //return -LinearizeDepth( textureLod(sceneDepth, ray.xy,level).r) * far; 
 }
 
@@ -825,6 +825,7 @@ bool trace_ray_HIZ(
  out vec3 P00
     )
 {
+    int hitFlag=0;
 
     vec4 psPosition = ProjectionMatrix * vec4(csOrig, 1.0f);
     vec3 ndcsPosition = psPosition.xyz / psPosition.w;
@@ -832,7 +833,7 @@ bool trace_ray_HIZ(
     //csDir=reflect()
 
 
-    csDir = csOrig+csDir/10;
+    csDir = csOrig+csDir;
     vec4 psReflectionVector = ProjectionMatrix * vec4(csDir, 1.0);
     vec3 ndcEndPoint = psReflectionVector.xyz / psReflectionVector.w;
     vec3 ssEndPoint = 0.5f * ndcEndPoint + 0.5f;
@@ -849,7 +850,7 @@ bool trace_ray_HIZ(
     //    return vec3(0);
     //}
     vec3 p=ssPosition;
-    vec3 v=ray_dir;
+    vec3 v=ray_dir/10;
     uint camera=uint(1);
 
     float level = HIZ_START_LEVEL;
@@ -858,12 +859,13 @@ bool trace_ray_HIZ(
     vec3 ray = p;
 
     vec2 cross_step = vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
-    vec2 cross_offset = cross_step * 0.00001;
+    vec2 cross_offset = cross_step * 0.0001;
   //cross_step = saturate(cross_step);
     cross_step = clamp(cross_step, 0.0, 1.0);
 
     vec2 ray_cell = cell(ray.xy, hi_z_size.xy, camera);
-    ray = intersect_cell_boundary(ray, v, ray_cell, hi_z_size, cross_step, cross_offset, camera);
+    //ray_cell+=0.25/hi_z_size;
+    ray = intersect_cell_boundary(ray, v_z, ray_cell, hi_z_size, cross_step, cross_offset, camera);
 
     int iterations = 0;
     while(level >= HIZ_STOP_LEVEL && iterations < MAX_ITERATIONS) 
@@ -880,22 +882,26 @@ bool trace_ray_HIZ(
         if(v.z > 0) 
         {
             float min_minus_ray = min_z - ray.z;
+            if(min_minus_ray>0) hitFlag=1;
             tmp_ray = min_minus_ray > 0 ? ray + v_z*min_minus_ray : tmp_ray;
             vec2 new_cell_id = cell(tmp_ray.xy, current_cell_count, camera);
             if(crossed_cell_boundary(old_cell_id, new_cell_id)) 
+            //if(false) 
             {
-                tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
+                tmp_ray = intersect_cell_boundary(ray, v_z, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
                 level = min(HIZ_MAX_LEVEL, level + 2.0f);
             }else{
 
-                //if(level == 1 && abs(min_minus_ray) > 0.0001)
-                if(false) 
+                if(level == 0 && abs(min_minus_ray) > 0.01)
+                //if(false) 
                 {
                     tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
-                    level = 2;
+                    level = 0;
                 }
             }
-        }else if(ray.z < min_z) 
+        }
+        else if(ray.z < min_z)
+        //else if(false) 
         {
             tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
             level = min(HIZ_MAX_LEVEL, level + 2.0f);
@@ -906,14 +912,17 @@ bool trace_ray_HIZ(
 
         ++iterations;
     }
+    P00=vec3(float(iterations)/float(MAX_ITERATIONS));
+    if(ray.x<0 || ray.x>1 || ray.y<0 || ray.y>1) hitFlag=0;
+    ray.xy=ray.xy*2-1;
     hitPixel=ray.xy;
     //ray.z=-LinearizeDepth(-ray.z/far)*far;
     //ray.z=0;
+    
     hitPoint=ray;
-    //if(level<HIZ_STOP_LEVEL || iterations >= MAX_ITERATIONS)
-    //    return false;
-    //else 
+    if(hitFlag == 0) return false;
     return true;
+
 }
 
 vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
@@ -1034,6 +1043,8 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             float IL=0;     
             BRDF=SsrBRDF(viewDir,(inverse(ViewMatrix)*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
             //SSRHitPixel=vec4(vec3(-1),pdf);
+            //return vec4(hitPoint_WS.xyz - wsPosition,1);
+            return vec4(test,1);
             return vec4(hitPoint_WS.xyz,pdf);
         }
     }
