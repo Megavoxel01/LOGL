@@ -58,6 +58,24 @@ vec2(1, -1),
 vec2(-1, -1),
 vec2(0, 1)
     );
+
+float radicalInverse_VdC(uint bits) 
+{
+bits = (bits << 16u) | (bits >> 16u);
+bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+
+return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+vec2 Hammersley(uint i, uint n)
+{ 
+return vec2(i/n, radicalInverse_VdC(i));
+}
+
+
 #define point2 vec2
 #define point3 vec3
 
@@ -561,6 +579,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             float IL=0;     
             BRDF=SsrBRDF(viewDir,(inverse(ViewMatrix)*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
             //SSRHitPixel=vec4(vec3(-1),pdf);
+            //return vec4(hitPoint_WS.xyz - wsPosition,pdf);
             return vec4(hitPoint_WS.xyz,pdf);
         }
     }
@@ -771,7 +790,7 @@ bool trace_ray(
 }
 
 /////////////////////////////////////////
-#define MAX_ITERATIONS 30
+#define MAX_ITERATIONS 35
 #define HIZ_START_LEVEL 1
 #define HIZ_STOP_LEVEL 0
 #define HIZ_MAX_LEVEL 10
@@ -857,6 +876,9 @@ bool trace_ray_HIZ(
     vec3 v_z = v/v.z;
     vec2 hi_z_size = cell_count(level);
     vec3 ray = p;
+    //P00=ray;
+    ray.xy+=0.5/hi_z_size;
+    float originalDepth=textureLod(sceneDepth, ray.xy, 0).r;
 
     vec2 cross_step = vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
     vec2 cross_offset = cross_step * 0.0001;
@@ -882,19 +904,21 @@ bool trace_ray_HIZ(
         if(v.z > 0) 
         {
             float min_minus_ray = min_z - ray.z;
-            if(min_minus_ray>0) hitFlag=1;
-            tmp_ray = min_minus_ray > 0 ? ray + v_z*min_minus_ray : tmp_ray;
+            //if(abs(min_minus_ray)<1e-3) hitFlag=1;
+            tmp_ray = min_minus_ray > 1e-6  ? ray + v_z*min_minus_ray : tmp_ray;
             vec2 new_cell_id = cell(tmp_ray.xy, current_cell_count, camera);
             if(crossed_cell_boundary(old_cell_id, new_cell_id)) 
             //if(false) 
             {
-                tmp_ray = intersect_cell_boundary(ray, v_z, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
+                tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
                 level = min(HIZ_MAX_LEVEL, level + 2.0f);
             }else{
 
-                if(level == 0 && abs(min_minus_ray) > 0.01)
+                if(level == 0 && abs(min_minus_ray) < 1e-4)
                 //if(false) 
                 {
+                    hitFlag=1;
+                    break;
                     tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
                     level = 0;
                 }
@@ -912,15 +936,15 @@ bool trace_ray_HIZ(
 
         ++iterations;
     }
-    P00=vec3(float(iterations)/float(MAX_ITERATIONS));
-    if(ray.x<0 || ray.x>1 || ray.y<0 || ray.y>1) hitFlag=0;
+    P00=vec3(float(iterations));
+    //if(ray.x<0 || ray.x>1 || ray.y<0 || ray.y>1) hitFlag=0;
     ray.xy=ray.xy*2-1;
     hitPixel=ray.xy;
     //ray.z=-LinearizeDepth(-ray.z/far)*far;
     //ray.z=0;
     
     hitPoint=ray;
-    if(hitFlag == 0) return false;
+    if(hitFlag == 0 || iterations <=1) return false;
     return true;
 
 }
@@ -930,8 +954,8 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
 
     vec3 vsPosition=(ViewMatrix*vec4(wsPosition,1.0f)).xyz;
     vec3 vsNormal=(ViewMatrix*vec4(wsNormal,0)).xyz;
-    vec3 vsReflectionVector=normalize(reflect(vsPosition,vsNormal));
-    vec3 wsReflectionVector=normalize(reflect(wsPosition,wsNormal));
+    //vec3 vsReflectionVector=normalize(reflect(vsPosition,vsNormal));
+    //vec3 wsReflectionVector=normalize(reflect(wsPosition,wsNormal));
     float BRDF=0;
     float pdf=1;
     float debug;
@@ -962,36 +986,33 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
         int index2=int(_random2*100);
         //float sampleBias=0.3;
         vec2 jitter=vec2(mix(haltonNum[index1%99],1.0,sampleBias),haltonNum[index2%99]);
+        //vec2 jitter = Hammersley(uint(TexCoords.x*screenWidth+TexCoords.y*screenHeight), uint(screenWidth*screenHeight));
         //vec2 jitter=texture(blueNoise,vec2(TexCoords.x+_random1,TexCoords+_random2)).xy;
         //vec2 jitter=vec2(_random1,_random2);
 
         vec4 H=TangentToWorld(normalize(vsNormal), ImportanceSampleGGX(jitter, roughness));
         H.xyz=normalize(H.xyz);
         vec3 dir=normalize(reflect(normalize(vsPosition),H.xyz));
-        float ii=2;
+        float ii=0;
         //float CameraFacingReflectionAttenuation = 1 - smoothstep(0, 0.88, dot(vec3(0,0,1), H.xyz));
         //if (CameraFacingReflectionAttenuation <= 0)
           //  continue;
 
         flag=0;
-        while(dot(dir,vsNormal)<=0)
+        while(dot(dir,vsNormal)<1e-5)
         {
             _random1=rand(TexCoords*_random1);
             _random2=rand(TexCoords*_random2-0.0301f*ii);
             int num1=int(_random1*100);
             int num2=int(_random2*100);
-            jitter=vec2(haltonNum[int(num1%99)],haltonNum[int(num2%99)]);
+            jitter=vec2(haltonNum[int(num1*(int(i)+1)%99)],haltonNum[int(num2*(int(i)+1)%99)]);
             H=TangentToWorld(normalize(vsNormal), ImportanceSampleGGX(jitter, roughness));
             H.xyz=normalize(H.xyz);
-            dir=normalize(reflect(normalize(vsPosition),H.xyz));
+            dir=reflect(normalize(vsPosition),H.xyz);
             ii++;
-            if(ii>=5) {flag=1;break;}
+            if(ii>=8) {return vec4(vec3(-100000),pdf);}
         }
-        if(flag==1) 
-        {
-            //SSRHitPixel=vec4(-1,-1,-1,pdf);
-            return vec4(vec3(-100000),pdf);
-        }
+        //dir/=abs(dir.z);
         
 
         //float new_stride=roughness>=0.2f?inputStride:inputStride+roughness*3;
@@ -1001,7 +1022,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
         //dir=normalize(reflect(normalize(vsPosition.xyz),normalize(vsNormal.xyz)));
         //return vec4(normalize(dir),1);
 
-        bool isHit=trace_ray_HIZ(vsPosition.xyz,
+        bool isHit=trace_ray_HIZ(vsPosition.xyz+vsNormal*0.001,
             dir,
             ProjectionMatrix,
             sceneDepth,
@@ -1027,10 +1048,10 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             //return vec4(hitPoint.xy,deviceZ,1);
             //return vec4(hitPoint,1);
             //return vec4(test/2,1);
-            vec4 hitPointVS=inverse(ProjectionMatrix)*vec4(hitPoint,1);
+            vec4 hitPointVS=inverseProjectionMatrix*vec4(hitPoint,1);
             hitPointVS.xyz/=hitPointVS.w;
             //hitPoint_WS=inverse(ViewMatrix)*vec4(hitPoint,1);
-            hitPoint_WS=inverse(ViewMatrix)*vec4(hitPointVS.xyz,1); 
+            hitPoint_WS=inverseViewMatrix*vec4(hitPointVS.xyz,1); 
             vec4 hitPoint_VS=preViewMatrix*hitPoint_WS;
             vec4 hitPoint_CS=preProjectionMatrix*hitPoint_VS;
             prevUV=0.5f*(hitPoint_CS.xy/hitPoint_CS.w)+0.5f;
@@ -1041,10 +1062,11 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             }
             pdf=1;
             float IL=0;     
-            BRDF=SsrBRDF(viewDir,(inverse(ViewMatrix)*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
+            BRDF=SsrBRDF(viewDir,(inverseViewMatrix*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
             //SSRHitPixel=vec4(vec3(-1),pdf);
-            //return vec4(hitPoint_WS.xyz - wsPosition,1);
-            return vec4(test,1);
+            //return vec4(vsPosition,pdf);
+            //return vec4(hitPoint - test,1);
+            //return vec4(test,1);
             return vec4(hitPoint_WS.xyz,pdf);
         }
     }

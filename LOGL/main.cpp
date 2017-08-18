@@ -1175,6 +1175,7 @@ int main()
 		int currentHeight = screenHeight;
 		for (int i = 1; i<numLevels; i++) {
 			hiZ.SetUniform("LastMipSize", glm::ivec2(currentWidth, currentHeight));
+			hiZ.SetUniform("level", i);
 			currentWidth /= 2;
 			currentHeight /= 2;
 			currentWidth = currentWidth > 0 ? currentWidth : 1;
@@ -1273,6 +1274,7 @@ int main()
 		ssrTrace.SetUniform("preProjectionMatrix", previousProjection);
 		ssrTrace.SetUniform("preViewMatrix", previousView);
 		ssrTrace.SetUniform("inverseViewMatrix", glm::inverse(view));
+		ssrTrace.SetUniform("inverseProjectionMatrix", glm::inverse(projection));
 		ssrTrace.SetUniform("extRand1", dist(mt));
 		ssrTrace.SetUniform("tempRoughness", tempRoughness);
 		ssrTrace.SetUniform("frameIndex", currentFrameIndex);
