@@ -791,7 +791,7 @@ bool trace_ray(
 
 /////////////////////////////////////////
 #define MAX_ITERATIONS 35
-#define HIZ_START_LEVEL 1
+#define HIZ_START_LEVEL 0
 #define HIZ_STOP_LEVEL 0
 #define HIZ_MAX_LEVEL 10
 vec2 cell(vec2 ray, vec2 cell_count, uint camera) {
@@ -799,7 +799,7 @@ vec2 cell(vec2 ray, vec2 cell_count, uint camera) {
 }
 
 vec2 cell_count(float level) {
-    return vec2(screenWidth, screenHeight) / (level == 0.0 ? 1.0 : exp2(level));
+    return vec2(screenWidth, screenHeight) / exp2(level);
 }
 
 vec3 intersect_cell_boundary(vec3 pos, vec3 dir, vec2 cell_id, vec2 cell_count, vec2 cross_step, vec2 cross_offset, uint camera) {
@@ -869,7 +869,7 @@ bool trace_ray_HIZ(
     //    return vec3(0);
     //}
     vec3 p=ssPosition;
-    vec3 v=ray_dir/10;
+    vec3 v=ray_dir*0.001;
     uint camera=uint(1);
 
     float level = HIZ_START_LEVEL;

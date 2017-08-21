@@ -24,7 +24,7 @@
 
 
 
-const GLuint screenWidth = 1152, screenHeight = 648;
+const GLuint screenWidth = 1280, screenHeight = 720;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -686,7 +686,7 @@ int main()
 
 	Model ourModel("stanford-dragon.obj");
 	//Model buddha("happy-buddha-webgl-sub-surface-scattering.obj");
-	ourModel.emmisive = true;
+	ourModel.emmisive = false;
 
 	std::vector<glm::vec3> objectPositions;
 	objectPositions.push_back(glm::vec3(-3.0, -4.2, -3.0));
@@ -739,7 +739,7 @@ int main()
 	err = glGetError();
 	//gbuffer depth
 
-	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID, 0);
 	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
 
@@ -1064,6 +1064,10 @@ int main()
 		//shaderGeometryPass.BindTexture(1, teath_s_ptr->textureID, "material.texture_specular1");
 		//shaderGeometryPass.BindTexture(2, teath_n_ptr->textureID, "material.texture_normal1");
 		//shaderGeometryPass.BindTexture(3, teath_r_ptr->textureID, "material.texture_roughness1");
+		shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
+		shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
+		shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
+		shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
 		for (GLuint i = 0; i < objectPositions.size(); i++)
 		{
 			model = glm::mat4();
@@ -1081,13 +1085,13 @@ int main()
 		shaderGeometryPass.SetUniform("model", model);
 		shaderGeometryPass.SetUniform("flagGloss", flagGloss);
 		shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
-		shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
-		shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
-		shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
-		shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
+		//shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
+		//shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
+		//shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
+		//shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
 		ourModel.emmisive = false;
 		ourModel.Draw(shaderGeometryPass);
-		ourModel.emmisive = true;
+		ourModel.emmisive = false;
 
 		model = glm::mat4();
 		shaderGeometryPass.SetUniform("model", model);
@@ -1176,6 +1180,10 @@ int main()
 		for (int i = 1; i<numLevels; i++) {
 			hiZ.SetUniform("LastMipSize", glm::ivec2(currentWidth, currentHeight));
 			hiZ.SetUniform("level", i);
+			glm::vec2 offsets;
+			offsets.x = (currentWidth % 2 == 0 ? 1 : 2);
+			offsets.y = (currentHeight % 2 == 0 ? 1 : 2);
+			hiZ.SetUniform("offsets", offsets);
 			currentWidth /= 2;
 			currentHeight /= 2;
 			currentWidth = currentWidth > 0 ? currentWidth : 1;

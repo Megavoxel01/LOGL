@@ -3,6 +3,7 @@
 uniform sampler2D LastMip;
 uniform ivec2 LastMipSize;
 uniform int level;
+uniform vec2 offsets;
 
 in vec2 TexCoords;
 
@@ -12,9 +13,9 @@ void main()
   float maxZ1;
   float maxZ2;
   texels.x = texture( LastMip, TexCoords ).x;
-  texels.y = textureOffset( LastMip, TexCoords, ivec2(1, 0) ).x;
-  texels.z = textureOffset( LastMip, TexCoords, ivec2(1,1) ).x;
-  texels.w = textureOffset( LastMip, TexCoords, ivec2(0,1) ).x;
+  texels.y = textureOffset( LastMip, TexCoords, ivec2(offsets.x, 0) ).x;
+  texels.z = textureOffset( LastMip, TexCoords, ivec2(offsets.x,offsets.y) ).x;
+  texels.w = textureOffset( LastMip, TexCoords, ivec2(0,offsets.y) ).x;
   //int level=0;
 
   //texels.x = texelFetch( LastMip, ivec2(TexCoords*LastMipSize), level-1).x;
@@ -24,7 +25,7 @@ void main()
 
 
   float maxZ = min( min( texels.x, texels.y ), min( texels.z, texels.w ) );
-
+/*
   vec3 extra;
   // if we are reducing an odd-width texture then fetch the edge texels
   if ( ( (LastMipSize.x & 1) != 0 ) && ( int(gl_FragCoord.x) == LastMipSize.x-3 ) ) {
@@ -43,6 +44,7 @@ void main()
     extra.y = textureOffset( LastMip, TexCoords, ivec2(-1, 1) ).x;
     maxZ = min( maxZ, min( extra.x, extra.y ) );
   }
+  */
 
   gl_FragDepth = maxZ;
 }
