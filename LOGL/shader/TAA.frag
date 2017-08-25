@@ -72,7 +72,8 @@ float IntersectAABB(vec3 rayDir, vec3 rayOrg, vec3 boxExt)
     if (length(rayDir) < 1e-6) return 1;
 
     // Intersection using slabs
-    vec3 rcpDir = rcp(rayDir);
+    //vec3 rcpDir = rcp(rayDir);
+    vec3 rcpDir = 1.0f / rayDir;
     vec3 tNeg = ( boxExt - rayOrg) * rcpDir;
     vec3 tPos = (-boxExt - rayOrg) * rcpDir;
     return max(max(min(tNeg.x, tPos.x), min(tNeg.y, tPos.y)), min(tNeg.z, tPos.z));
@@ -89,7 +90,7 @@ float ClipHistory(vec3 cHistory, vec3 cM, vec3 cMin, vec3 cMax)
     vec3 rayDir = cM - cHistory;
     vec3 rayOrg = cHistory - boxCenter;
     
-    return saturate(IntersectAABB(rayDir, rayOrg, boxExtents));
+    return clamp(IntersectAABB(rayDir, rayOrg, boxExtents), 0.0f, 1.0f);
 }
 
 void main()
@@ -111,8 +112,8 @@ void main()
     //vec4 current = texture(hdrBuffer, TexCoords);
 	//vec4 previous = texture(prevBuffer, prevUV);
 
-	vec2 du = vec2(1.0 / screenWidth, 0.0);
-	vec2 dv = vec2(0.0, 1.0 / screenHeight);
+	vec2 du = vec2(1.0f / screenWidth, 0.0);
+	vec2 dv = vec2(0.0, 1.0f / screenHeight);
 
 	//vec4 currentTopLeft = texture(hdrBuffer, TexCoords - dv - du);
 	//vec4 currentTopCenter = texture(hdrBuffer, TexCoords - dv);
@@ -128,17 +129,28 @@ void main()
 	//vec4 currentMax = max(currentTopLeft, max(currentTopCenter, max(currentTopRight, max(currentMiddleLeft, max(currentMiddleCenter, max(currentMiddleRight, max(currentBottomLeft, max(vec4(currentMiddleCenter), currentBottomRight))))))));
 
 	//float scale = 0.5f;
-
-	vec3 cCenter  = tex2D(hdrBuffer, tc);
-    vec3 cN1 = tex2D(hdrBuffer, tc + texel * vec2(-1.05f, -1.05f));
-    vec3 cN2 = tex2D(hdrBuffer, tc + texel * vec2( 1.05f, -1.05f));
-    vec3 cN3 = tex2D(hdrBuffer, tc + texel * vec2(-1.05f,  1.05f));
-    vec3 cN4 = tex2D(hdrBuffer, tc + texel * vec2( 1.05f,  1.05f));
+    vec2 texel = 1.0f/vec2(screenWidth, screenHeight);
     
-    vec3 cN5 = tex2D(hdrBuffer, tc + texel * vec2(-1.0f,  0.0f));
-    vec3 cN6 = tex2D(hdrBuffer, tc + texel * vec2( 1.0f,  0.0f));
-    vec3 cN7 = tex2D(hdrBuffer, tc + texel * vec2( 0.0f, -1.0f));
-    vec3 cN8 = tex2D(hdrBuffer, tc + texel * vec2( 0.0f,  1.0f));
+
+	vec3 cCenter  = texture(hdrBuffer, TexCoords).xyz;
+    cCenter.rgb/=1+Luminance(cCenter.rgb);
+    vec3 cN1 = texture(hdrBuffer, TexCoords + texel * vec2(-1.0f, -1.0f)).xyz;
+    cN1.rgb/=1+Luminance(cN1.rgb);
+    vec3 cN2 = texture(hdrBuffer, TexCoords + texel * vec2( 1.0f, -1.0f)).xyz;
+    cN2.rgb/=1+Luminance(cN1.rgb);
+    vec3 cN3 = texture(hdrBuffer, TexCoords + texel * vec2(-1.0f,  1.0f)).xyz;
+    cN3.rgb/=1+Luminance(cN1.rgb);
+    vec3 cN4 = texture(hdrBuffer, TexCoords + texel * vec2( 1.0f,  1.0f)).xyz;
+    cN4.rgb/=1+Luminance(cN1.rgb);
+    
+    vec3 cN5 = texture(hdrBuffer, TexCoords + texel * vec2(-1.0f,  0.0f)).xyz;
+    cN5.rgb/=1+Luminance(cN1.rgb);
+    vec3 cN6 = texture(hdrBuffer, TexCoords + texel * vec2( 1.0f,  0.0f)).xyz;
+    cN6.rgb/=1+Luminance(cN1.rgb);
+    vec3 cN7 = texture(hdrBuffer, TexCoords + texel * vec2( 0.0f, -1.0f)).xyz;
+    cN7.rgb/=1+Luminance(cN1.rgb);
+    vec3 cN8 = texture(hdrBuffer, TexCoords + texel * vec2( 0.0f,  1.0f)).xyz;
+    cN8.rgb/=1+Luminance(cN1.rgb);
     
     // Compute color variance
     vec3 m1 = cN1 + cN2 + cN3 + cN4 + cN5 + cN6 + cN7 + cN8 + cCenter;
@@ -148,30 +160,31 @@ void main()
     vec3 cMin = mean - 1.0 * stddev;
     vec3 cMax = mean + 1.0 * stddev;
     
-    vec4 cHistory = texture(_tex5, prevUV);
-    cHistory.rgb = FilterHistory(_tex5, tc + v, cbPostAA.screenSize);
+    vec4 cHistory = texture(prevBuffer, prevUV);
+    cHistory.rgb/=1+Luminance(cHistory.rgb);
+    //cHistory.rgb = FilterHistory(_tex5, tc + v, cbPostAA.screenSize);
     
-    bool offscreen = max(abs((tc.x + v.x) * 2 - 1), abs((tc.y + v.y) * 2 - 1)) >= 1.0;
+    //bool offscreen = max(abs((tc.x + v.x) * 2 - 1), abs((tc.y + v.y) * 2 - 1)) >= 1.0;
     float clipLength = 1;
     float neighborDiff = 0;
     
-    vec4 prevTL = 0, prevTR = 0, prevBL = 0, prevBR = 0;
-    vec4 prevTT = 0, prevBB = 0, prevLL = 0, prevRR = 0;
-    
+    vec4 prevTL = vec4(0), prevTR = vec4(0), prevBL = vec4(0), prevBR = vec4(0);
+    vec4 prevTT = vec4(0), prevBB = vec4(0), prevLL = vec4(0), prevRR = vec4(0);
+    clipLength = ClipHistory(cHistory.rgb, cCenter, cMin, cMax);
     //[branch] if (!offscreen)
     {
         //clipLength = ClipHistory(cHistory.rgb, cCenter, cMin, cMax);
     
         // Try to identify subpixel changes
-        //prevTL = tex2Dlod(_tex5, vec4(tc + v + texel * vec2(-1.0f, -1.0f), 0, 0));
-        //prevTR = tex2Dlod(_tex5, vec4(tc + v + texel * vec2( 1.0f, -1.0f), 0, 0));
-        //prevBL = tex2Dlod(_tex5, vec4(tc + v + texel * vec2(-1.0f,  1.0f), 0, 0));
-        //prevBR = tex2Dlod(_tex5, vec4(tc + v + texel * vec2( 1.0f,  1.0f), 0, 0));
+        //prevTL = texturelod(_tex5, vec4(tc + v + texel * vec2(-1.0f, -1.0f), 0, 0));
+        //prevTR = texturelod(_tex5, vec4(tc + v + texel * vec2( 1.0f, -1.0f), 0, 0));
+        //prevBL = texturelod(_tex5, vec4(tc + v + texel * vec2(-1.0f,  1.0f), 0, 0));
+        //prevBR = texturelod(_tex5, vec4(tc + v + texel * vec2( 1.0f,  1.0f), 0, 0));
         
-        //prevTT = tex2Dlod(_tex5, vec4(tc + v + texel * vec2( 0.0f, -1.0f), 0, 0));
-        //prevBB = tex2Dlod(_tex5, vec4(tc + v + texel * vec2( 0.0f,  1.0f), 0, 0));
-        //prevLL = tex2Dlod(_tex5, vec4(tc + v + texel * vec2(-1.0f,  0.0f), 0, 0));
-        //prevRR = tex2Dlod(_tex5, vec4(tc + v + texel * vec2( 1.0f,  0.0f), 0, 0));
+        //prevTT = texturelod(_tex5, vec4(tc + v + texel * vec2( 0.0f, -1.0f), 0, 0));
+        //prevBB = texturelod(_tex5, vec4(tc + v + texel * vec2( 0.0f,  1.0f), 0, 0));
+        //prevLL = texturelod(_tex5, vec4(tc + v + texel * vec2(-1.0f,  0.0f), 0, 0));
+        //prevRR = texturelod(_tex5, vec4(tc + v + texel * vec2( 1.0f,  0.0f), 0, 0));
         
         //float neighborDiff1 = length(clamp(prevTL.rgb, cMin, cMax) - prevTL.rgb) + length(clamp(prevTR.rgb, cMin, cMax) - prevTR.rgb) +
         //                                          length(clamp(prevBL.rgb, cMin, cMax) - prevBL.rgb) + length(clamp(prevBR.rgb, cMin, cMax) - prevBR.rgb);
@@ -188,11 +201,13 @@ void main()
     //float prevBlend = (cHistory.w + prevTL.w + prevTR.w + prevBL.w + prevBR.w + prevTT.w + prevBB.w + prevLL.w + prevRR.w) / 9.0;
     float prevBlend=cHistory.w;
     float currBlend = clamp(neighborDiff * 10, 0.0f, 1.0f) * 0.10 + prevBlend * 0.90;
-    const float weight = lerp(0.25, 0.08, saturate(currBlend * cbPostAA.params.y));
-    color.rgb = cCenter * weight + cHistory.rgb * (1 - weight);
-    color.a = currBlend;
-
-
+    //float weight = lerp(0.25, 0.08, clamp(currBlend, 0.0f, 1.0f));
+    
+    color.rgb = cCenter * (1.0f - TAAresponse) + cHistory.rgb * TAAresponse;
+    color.rgb/=1-Luminance(color.rgb);
+    //color.rgb=cHistory.rgb;
+    //color.rgb=cCenter.rgb;
+    color.a = 1;
 
 
     //vec4 center = (currentMin + currentMax) * 0.2f;
@@ -215,10 +230,9 @@ void main()
     vec3 Normal = texture(gNormal, TexCoords).rgb;
     vec3 viewDir  = normalize(viewPos - FragPos);
     float roughness=texture(gNormal, TexCoords).a;
-    float NdotV=max(dot(normalize(Normal),normalize(viewDir)),1e-5);
+    float NdotV=max(dot(normalize(Normal),normalize(viewDir)),1e-9);
     vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
-    color.xyz=(color.xyz*FG.x+vec3(FG.y));
-    //color.xyz=vec3(NdotV);
+    //color.xyz=(color.xyz*FG.x+vec3(FG.y));
 
 	//hdrColor=temporal ? mix(current,previous,TAAresponse).rgb : texture(hdrBuffer, TexCoords).rgb;
 

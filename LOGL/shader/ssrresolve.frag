@@ -53,10 +53,10 @@ const float far=100.0f;
 //vec4 reflectionV;
 #define PI 3.1415926535f
 
-const vec2 offset[16]=vec2[](
+const vec2 offset[28]=vec2[](
 vec2(0, 0),
-vec2(-2.0f, 2.0f),
-vec2(-2.0f, 0.0f),
+vec2(-1.0f, 1.0f),
+vec2(-1.0f, 0.0f),
 vec2(0, 2.0f),
 
 vec2(1.0f, 0.0f),
@@ -69,10 +69,25 @@ vec2(-2.0f, 1.0f),
 vec2(0, -1.0f),
 vec2(0, 2.0f),
 
-vec2(-2.0f, 2.0f),
-vec2(2.0f, -2.0f),
-vec2(-2.0f, 0),
-vec2(-2.0f, 0)
+vec2(-2.0f, 1.0f),
+vec2(-2.0f, 0.0f),
+vec2(0.0f, 1.0f),
+vec2(0.0f, 0),
+
+vec2(-1.0f, 0.0f),
+vec2(0.0f, 0.0f),
+vec2(0.0f, -2.0f),
+vec2(-1.0f, -2.0f),
+
+vec2(1.0f, 1.0f),
+vec2(2.0f, 1.0f),
+vec2(1.0f, -1.0f),
+vec2(2.0f, -1.0f),
+
+vec2(-2.0f, 0.0f),
+vec2(1.0f, 0.0f),
+vec2(-2.0f, -3.0f),
+vec2(1.0f, -3.0f)
     );
 #define point2 vec2
 #define point3 vec3
@@ -192,36 +207,6 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
 }
 
 
-void swapIfBigger (inout float aa, inout float bb) {
-    if( aa > bb) {
-        float tmp = aa;
-        aa = bb;
-        bb = tmp;
-    }
-}
-
-
-bool rayIntersectsDepthBF( float zA, float zB, vec2 uv, float zThickness)
-{
-    //VEC4 uv4 = float4( uv, 0.0, 0.0);
-    float cameraZ = -LinearizeDepth( texture(sceneDepth, uv,1).r) * far;   
-    //float backZ = tex2Dlod( _BackFaceDepthTex, uv4).r * -_ProjectionParams.z;
-                
-    return zB <= cameraZ&&zA >= cameraZ-zThickness ;
-}
-
-bool rayIntersectsDepthBF1( float zA, float zB, vec2 uv, float zThickness)
-{
-    //VEC4 uv4 = float4( uv, 0.0, 0.0);
-    float cameraZ = -LinearizeDepth( texture(sceneDepth, uv,1).r) * far;   
-    //float backZ = tex2Dlod( _BackFaceDepthTex, uv4).r * -_ProjectionParams.z;
-                
-    return zB <= cameraZ && zA >= cameraZ-zThickness;
-}
-
-            
-
-
 vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
 {
     float radius;
@@ -273,10 +258,10 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
     for(float k=0;k<1;k++)
     {
 
-        for(float j=0;j<resolve;j++)
+        for(float j=0;j<4;j++)
         {
             emmiFlag=false;
-            vec2 offsetUV=offset[int(j)%8]/debugTest;
+            vec2 offsetUV=offset[(int(jitter1.x*7)*4+int(j))%28];
             offsetUV+=ivec2(jitter1);
             offsetUV.x/=screenWidth;
             offsetUV.y/=screenHeight;
@@ -403,7 +388,7 @@ void main()
     float roughness=Gloss;
     float NdotV=max(dot(normalize(Normal),normalize(viewDir)),1e-5);
     vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
-    //FragColor.xyz=(FragColor.xyz*FG.x+vec3(FG.y));
+    FragColor.xyz=(FragColor.xyz*FG.x+vec3(FG.y));
     //if(FragColor)
     //FragColor=vec4(vec3(Gloss),1);
 

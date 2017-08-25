@@ -24,7 +24,7 @@
 
 
 
-const GLuint screenWidth = 1280, screenHeight = 720;
+const GLuint screenWidth = 1880, screenHeight = 1040;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -662,8 +662,8 @@ int main()
 	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/LIGHTGREY.png"));
 	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/greyR.png"));
 	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/rustediron-streaks_normal.png"));
-	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
-	std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
+	std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
+	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
 	glBindTexture(GL_TEXTURE_2D, planeNormal->textureID);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
