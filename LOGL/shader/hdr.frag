@@ -26,15 +26,27 @@ vec3 FilmicToneMapping(vec3 x){
 	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
+vec3 ACESToneMapping(vec3 color, float adapted_lum)
+{
+    float A = 2.51f;
+    float B = 0.03f;
+    float C = 2.43f;
+    float D = 0.59f;
+    float E = 0.14f;
+    color *= adapted_lum;
+    return (color * (A * color + B)) / (color * (C * color + D) + E);
+}
+
 void main()
 {             
     const float gamma = 2.2f;
 	vec3 hdrColor=texture(linearBuffer, TexCoords).rgb;
 	hdrColor*=exposure;
 	float exBias=2.0f;
-	vec3 curr=FilmicToneMapping(exBias*hdrColor);
-	vec3 whiteScale=1.0f/FilmicToneMapping(vec3(W));
-	curr*=whiteScale;
+	//vec3 curr=FilmicToneMapping(exBias*hdrColor);
+	//vec3 whiteScale=1.0f/FilmicToneMapping(vec3(W));
+	//curr*=whiteScale;
+    vec3 curr=ACESToneMapping(hdrColor, 0.35f);
 
     // exposure
     //vec3 result = vec3(1.0) - exp(-hdrColor * exposure);

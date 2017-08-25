@@ -605,6 +605,9 @@ int main()
 	glUniform1i(glGetUniformLocation(TAA.Program, "prevBuffer"), 1);
 	glUniform1i(glGetUniformLocation(TAA.Program, "gPosition"), 2);
 	glUniform1i(glGetUniformLocation(TAA.Program, "sceneDepth"), 3);
+	glUniform1i(glGetUniformLocation(TAA.Program, "gNormal"), 4);
+	glUniform1i(glGetUniformLocation(TAA.Program, "BRDFLut"), 5);
+
 
 	hdr.Use();
 	glUniform1i(glGetUniformLocation(hdr.Program, "linearBuffer"), 0);
@@ -1531,6 +1534,10 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, gNormal);
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, BRDFLut);
 		TAA.SetUniform("ProjectionMatrix", projection);
 		TAA.SetUniform("ViewMatrix", view);
 		TAA.SetUniform("preProjectionMatrix", previousProjection);
@@ -1541,6 +1548,7 @@ int main()
 		TAA.SetUniform("temporal", flagTemporal);
 		TAA.SetUniform("TAAscale", TAAscale);
 		TAA.SetUniform("TAAresponse", TAAresponse);
+		glUniform3fv(glGetUniformLocation(emmisiveTrace.Program, "viewPos"), 1, &camera.Position[0]);
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
 		RenderBufferQuad();
 		glQueryCounter(queryID[1], GL_TIMESTAMP);

@@ -6,6 +6,8 @@ uniform sampler2D hdrBuffer;
 uniform sampler2D prevBuffer;
 uniform sampler2D gPosition;
 uniform sampler2D sceneDepth;
+uniform sampler2D gNormal;
+uniform sampler2D BRDFLut;
 
 
 uniform mat4x4 ProjectionMatrix;
@@ -21,6 +23,8 @@ uniform float screenHeight;
 uniform bool temporal;
 uniform float TAAscale;
 uniform float TAAresponse;
+
+uniform vec3 viewPos;
 
 float Luminance(vec3 rgb)
 {
@@ -116,6 +120,14 @@ void main()
 	//vec3 hdrColor;
 	color=temporal ? vec4(mix(current,previous,TAAresponse).rgb,1) : texture(hdrBuffer, TexCoords);
 
+    vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    vec3 Normal = texture(gNormal, TexCoords).rgb;
+    vec3 viewDir  = normalize(viewPos - FragPos);
+    float roughness=texture(gNormal, TexCoords).a;
+    float NdotV=max(dot(normalize(Normal),normalize(viewDir)),1e-5);
+    vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
+    color.xyz=(color.xyz*FG.x+vec3(FG.y));
+    //color.xyz=vec3(NdotV);
 
 	//hdrColor=temporal ? mix(current,previous,TAAresponse).rgb : texture(hdrBuffer, TexCoords).rgb;
 
