@@ -201,7 +201,7 @@ float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float s
         float pdfD=alphaSqr/(PI*denom * denom);
         PDF=pdfD*NdotH/(4*VdotH);
         IL=NdotL;
-        return D*F/(4*NdotV);
+        return D*F*Lambda_GGXV*Lambda_GGXL/(4*NdotV);
 }
 
 float PhysicalBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float specStrength)

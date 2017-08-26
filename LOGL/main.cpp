@@ -24,7 +24,7 @@
 
 
 
-const GLuint screenWidth = 1152, screenHeight = 648;
+const GLuint screenWidth = 1880, screenHeight = 1040;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -605,6 +605,9 @@ int main()
 	glUniform1i(glGetUniformLocation(TAA.Program, "prevBuffer"), 1);
 	glUniform1i(glGetUniformLocation(TAA.Program, "gPosition"), 2);
 	glUniform1i(glGetUniformLocation(TAA.Program, "sceneDepth"), 3);
+	glUniform1i(glGetUniformLocation(TAA.Program, "gNormal"), 4);
+	glUniform1i(glGetUniformLocation(TAA.Program, "BRDFLut"), 5);
+
 
 	hdr.Use();
 	glUniform1i(glGetUniformLocation(hdr.Program, "linearBuffer"), 0);
@@ -659,8 +662,8 @@ int main()
 	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/LIGHTGREY.png"));
 	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/greyR.png"));
 	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/rustediron-streaks_normal.png"));
-	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
-	std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
+	std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
+	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
 	glBindTexture(GL_TEXTURE_2D, planeNormal->textureID);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -686,7 +689,7 @@ int main()
 
 	Model ourModel("stanford-dragon.obj");
 	//Model buddha("happy-buddha-webgl-sub-surface-scattering.obj");
-	ourModel.emmisive = true;
+	ourModel.emmisive = false;
 
 	std::vector<glm::vec3> objectPositions;
 	objectPositions.push_back(glm::vec3(-3.0, -4.2, -3.0));
@@ -739,7 +742,7 @@ int main()
 	err = glGetError();
 	//gbuffer depth
 
-	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID, 0);
 	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
 
@@ -1064,6 +1067,10 @@ int main()
 		//shaderGeometryPass.BindTexture(1, teath_s_ptr->textureID, "material.texture_specular1");
 		//shaderGeometryPass.BindTexture(2, teath_n_ptr->textureID, "material.texture_normal1");
 		//shaderGeometryPass.BindTexture(3, teath_r_ptr->textureID, "material.texture_roughness1");
+		shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
+		shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
+		shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
+		shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
 		for (GLuint i = 0; i < objectPositions.size(); i++)
 		{
 			model = glm::mat4();
@@ -1081,13 +1088,13 @@ int main()
 		shaderGeometryPass.SetUniform("model", model);
 		shaderGeometryPass.SetUniform("flagGloss", flagGloss);
 		shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
-		shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
-		shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
-		shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
-		shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
+		//shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
+		//shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
+		//shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
+		//shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
 		ourModel.emmisive = false;
 		ourModel.Draw(shaderGeometryPass);
-		ourModel.emmisive = true;
+		ourModel.emmisive = false;
 
 		model = glm::mat4();
 		shaderGeometryPass.SetUniform("model", model);
@@ -1176,6 +1183,10 @@ int main()
 		for (int i = 1; i<numLevels; i++) {
 			hiZ.SetUniform("LastMipSize", glm::ivec2(currentWidth, currentHeight));
 			hiZ.SetUniform("level", i);
+			glm::vec2 offsets;
+			offsets.x = (currentWidth % 2 == 0 ? 1 : 2);
+			offsets.y = (currentHeight % 2 == 0 ? 1 : 2);
+			hiZ.SetUniform("offsets", offsets);
 			currentWidth /= 2;
 			currentHeight /= 2;
 			currentWidth = currentWidth > 0 ? currentWidth : 1;
@@ -1523,6 +1534,10 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, gNormal);
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, BRDFLut);
 		TAA.SetUniform("ProjectionMatrix", projection);
 		TAA.SetUniform("ViewMatrix", view);
 		TAA.SetUniform("preProjectionMatrix", previousProjection);
@@ -1533,6 +1548,7 @@ int main()
 		TAA.SetUniform("temporal", flagTemporal);
 		TAA.SetUniform("TAAscale", TAAscale);
 		TAA.SetUniform("TAAresponse", TAAresponse);
+		glUniform3fv(glGetUniformLocation(emmisiveTrace.Program, "viewPos"), 1, &camera.Position[0]);
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
 		RenderBufferQuad();
 		glQueryCounter(queryID[1], GL_TIMESTAMP);

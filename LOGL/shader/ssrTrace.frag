@@ -184,6 +184,25 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
     return vec4(H, pdf); 
 }
 
+vec3 sampleGGXVNDF(vec3 V_, float alpha_x, float alpha_y, float U1, float U2)
+{
+// stretch view
+    vec3 V = normalize(vec3(alpha_x * V_.x, alpha_y * V_.y, V_.z));
+// orthonormal basis
+    vec3 T1 = (V.z < 0.9999) ? normalize(cross(V, vec3(0,0,1))) : vec3(1,0,0);
+    vec3 T2 = cross(T1, V);
+// sample point with polar coordinates (r, phi)
+    float a = 1.0 / (1.0 + V.z);
+    float r = sqrt(U1);
+    float phi = (U2<a) ? U2/a * PI : PI + (U2-a)/(1.0-a) * PI;
+    float P1 = r*cos(phi);
+    float P2 = r*sin(phi)*((U2<a) ? 1.0 : V.z);
+// compute normal
+    vec3 N = P1*T1 + P2*T2 + sqrt(1.0 - P1*P1 - P2*P2)*V;
+// unstretch
+    N = normalize(vec3(alpha_x*N.x, alpha_y*N.y, N.z));
+    return N;
+} 
 
 void swapIfBigger (inout float aa, inout float bb) {
     if( aa > bb) {
@@ -515,6 +534,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
         //vec2 jitter=vec2(_random1,_random2);
 
         vec4 H=TangentToWorld(normalize(vsNormal), ImportanceSampleGGX(jitter, roughness));
+        //vec4 H=TangentToWorld(normalize(vsNormal), sampleGGXVNDF());
         H.xyz=normalize(H.xyz);
         vec3 dir=normalize(reflect(normalize(vsPosition),H.xyz));
         float ii=2;
@@ -790,16 +810,16 @@ bool trace_ray(
 }
 
 /////////////////////////////////////////
-#define MAX_ITERATIONS 35
+#define MAX_ITERATIONS 45
 #define HIZ_START_LEVEL 1
 #define HIZ_STOP_LEVEL 0
-#define HIZ_MAX_LEVEL 10
+#define HIZ_MAX_LEVEL 6
 vec2 cell(vec2 ray, vec2 cell_count, uint camera) {
     return floor(ray.xy * cell_count);
 }
 
 vec2 cell_count(float level) {
-    return vec2(screenWidth, screenHeight) / (level == 0.0 ? 1.0 : exp2(level));
+    return vec2(screenWidth, screenHeight) / exp2(level);
 }
 
 vec3 intersect_cell_boundary(vec3 pos, vec3 dir, vec2 cell_id, vec2 cell_count, vec2 cross_step, vec2 cross_offset, uint camera) {
@@ -869,7 +889,7 @@ bool trace_ray_HIZ(
     //    return vec3(0);
     //}
     vec3 p=ssPosition;
-    vec3 v=ray_dir/10;
+    vec3 v=ray_dir*0.001;
     uint camera=uint(1);
 
     float level = HIZ_START_LEVEL;
@@ -936,7 +956,7 @@ bool trace_ray_HIZ(
 
         ++iterations;
     }
-    P00=vec3(float(iterations));
+    P00=vec3(float(iterations)/float(MAX_ITERATIONS));
     //if(ray.x<0 || ray.x>1 || ray.y<0 || ray.y>1) hitFlag=0;
     ray.xy=ray.xy*2-1;
     hitPixel=ray.xy;
@@ -944,7 +964,7 @@ bool trace_ray_HIZ(
     //ray.z=0;
     
     hitPoint=ray;
-    if(hitFlag == 0 || iterations <=1) return false;
+    if(hitFlag == 0 || iterations <=1 || iterations >= MAX_ITERATIONS-2) return false;
     return true;
 
 }
@@ -991,6 +1011,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
         //vec2 jitter=vec2(_random1,_random2);
 
         vec4 H=TangentToWorld(normalize(vsNormal), ImportanceSampleGGX(jitter, roughness));
+        //vec4 H=TangentToWorld(normalize(vsNormal), sampleGGXVNDF());
         H.xyz=normalize(H.xyz);
         vec3 dir=normalize(reflect(normalize(vsPosition),H.xyz));
         float ii=0;
@@ -1010,7 +1031,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             H.xyz=normalize(H.xyz);
             dir=reflect(normalize(vsPosition),H.xyz);
             ii++;
-            if(ii>=8) {return vec4(vec3(-100000),pdf);}
+            if(ii>=4) {return vec4(vec3(-100000),pdf);}
         }
         //dir/=abs(dir.z);
         
@@ -1043,7 +1064,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
     //hitPixel/=vec2(screenWidth,screenHeight);
         if(isHit)
         {
-            //return vec4(test/10,1);
+            //return vec4(test,1);
             //float deviceZ=texture(sceneDepth, hitPoint.xy).x;
             //return vec4(hitPoint.xy,deviceZ,1);
             //return vec4(hitPoint,1);

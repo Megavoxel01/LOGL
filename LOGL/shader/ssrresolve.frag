@@ -53,22 +53,41 @@ const float far=100.0f;
 //vec4 reflectionV;
 #define PI 3.1415926535f
 
-const vec2 offset[15]=vec2[](
+const vec2 offset[28]=vec2[](
 vec2(0, 0),
-vec2(1.0f, 1.0f),
-vec2(-1.0f, -1.0f),
-vec2(0, -1.0f),
-vec2(0, 1.0f),
 vec2(-1.0f, 1.0f),
-vec2(1.0f, -1.0f),
-vec2(-1.0f, 0),
-vec2(2.0f, 2.0f),
-vec2(-2.0f, -2.0f),
-vec2(0, -2.0f),
+vec2(-1.0f, 0.0f),
 vec2(0, 2.0f),
-vec2(-2.0f, 2.0f),
+
+vec2(1.0f, 0.0f),
+vec2(2.0f, 0.0f),
+vec2(1.0f, -2.0f),
 vec2(2.0f, -2.0f),
-vec2(-2.0f, 0)
+
+vec2(0.0f, 1.0f),
+vec2(-2.0f, 1.0f),
+vec2(0, -1.0f),
+vec2(0, 2.0f),
+
+vec2(-2.0f, 1.0f),
+vec2(-2.0f, 0.0f),
+vec2(0.0f, 1.0f),
+vec2(0.0f, 0),
+
+vec2(-1.0f, 0.0f),
+vec2(0.0f, 0.0f),
+vec2(0.0f, -2.0f),
+vec2(-1.0f, -2.0f),
+
+vec2(1.0f, 1.0f),
+vec2(2.0f, 1.0f),
+vec2(1.0f, -1.0f),
+vec2(2.0f, -1.0f),
+
+vec2(-2.0f, 0.0f),
+vec2(1.0f, 0.0f),
+vec2(-2.0f, -3.0f),
+vec2(1.0f, -3.0f)
     );
 #define point2 vec2
 #define point3 vec3
@@ -187,35 +206,6 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
     return vec4(H, pdf); 
 }
 
-void swapIfBigger (inout float aa, inout float bb) {
-    if( aa > bb) {
-        float tmp = aa;
-        aa = bb;
-        bb = tmp;
-    }
-}
-
-
-bool rayIntersectsDepthBF( float zA, float zB, vec2 uv, float zThickness)
-{
-    //VEC4 uv4 = float4( uv, 0.0, 0.0);
-    float cameraZ = -LinearizeDepth( texture(sceneDepth, uv,1).r) * far;   
-    //float backZ = tex2Dlod( _BackFaceDepthTex, uv4).r * -_ProjectionParams.z;
-                
-    return zB <= cameraZ&&zA >= cameraZ-zThickness ;
-}
-
-bool rayIntersectsDepthBF1( float zA, float zB, vec2 uv, float zThickness)
-{
-    //VEC4 uv4 = float4( uv, 0.0, 0.0);
-    float cameraZ = -LinearizeDepth( texture(sceneDepth, uv,1).r) * far;   
-    //float backZ = tex2Dlod( _BackFaceDepthTex, uv4).r * -_ProjectionParams.z;
-                
-    return zB <= cameraZ && zA >= cameraZ-zThickness;
-}
-
-            
-
 
 vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
 {
@@ -260,18 +250,18 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
     float _random4=rand(TexCoords+0.501f);
     int num3=int(_random3*99);
     int num4=int(_random4*99);
-    vec2 jitter1=vec2(haltonNum[int((num3+int(frameIndex))%95)],haltonNum[int((num4+int(frameIndex))%95)]);
-    jitter1=jitter1*3-1.5;
-    float angle=jitter1.x*180;
+    vec2 jitter1=vec2(haltonNum[int((num3*int(frameIndex))%95)],haltonNum[int((num4*int(frameIndex))%95)]);
+    jitter1=(jitter1-0.5)*2.5;
+    //float angle=jitter1.x*180;
             //vec2 jitter1=vec2(_random3,_random4)*2-1;
     //mat2x2 offsetRotationMatrix = mat2x2(sin(angle), cos(angle), -cos(angle), sin(angle));
     for(float k=0;k<1;k++)
     {
 
-        for(float j=0;j<resolve;j++)
+        for(float j=0;j<4;j++)
         {
             emmiFlag=false;
-            vec2 offsetUV=offset[int(j)%8]/debugTest;
+            vec2 offsetUV=offset[(int(jitter1.x*7)*4+int(j))%28];
             offsetUV+=ivec2(jitter1);
             offsetUV.x/=screenWidth;
             offsetUV.y/=screenHeight;
@@ -314,6 +304,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             //}
             vec2 neighbourHitUV=prevUV;
             debug=vec3(neighbourHitUV,0);
+
             //debug=vec3((neighbourUV-TexCoords),0);
             vec2 size=vec2(textureSize(currFrame,0));
             neightbourColor=textureLod(currFrame,neighbourHitUV,mip).xyz;
@@ -338,8 +329,8 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             weightSum+=neighbourISPdf;
         }
     }
-    float NdotV=max(dot(normalize(wsNormal),normalize(viewDir)),1e-5);
-    vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
+    //float NdotV=max(dot(normalize(wsNormal),normalize(viewDir)),1e-5);
+    //vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
             //vec3 FG=texture2D(BRDFLut,vec2(0.5f,0.5f),0).xyz;
             //vec3 FG=EnvDFGPolynomial(vec3(specStrength),pow(1-tem pRoughness,4),NdotV);
     ssrcolor=vec4(neighcolorSum/max(weightSum,1e-5),1);
@@ -349,7 +340,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
         //return vec4(1);
         vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(wsNormal)));
         //return vec4(iblRef,1);
-        float mipL=roughness*3;
+        float mipL=roughness*2.5;
         vec3 IBLColor=texture(IBL,-iblRef, mipL).rgb;
         IBLColor.xyz/=1+Luminance(IBLColor.rgb);
         ssrcolor.xyz=IBLColor;
@@ -357,7 +348,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
 
     ssrcolor.xyz/=1-Luminance(ssrcolor.xyz);
     //ssrcolor.xyz=vec3(texture(ssrHitpixel,TexCoords).xy,1);
-    ssrcolor.xyz=(ssrcolor.xyz*FG.x+vec3(FG.y));
+    
 
 
 
@@ -394,6 +385,10 @@ void main()
     {
         FragColor=SSRef1(FragPos,Normal,viewDir,Gloss,Specular,Diffuse);
     }
+    float roughness=Gloss;
+    float NdotV=max(dot(normalize(Normal),normalize(viewDir)),1e-5);
+    vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
+    FragColor.xyz=(FragColor.xyz*FG.x+vec3(FG.y));
     //if(FragColor)
     //FragColor=vec4(vec3(Gloss),1);
 
