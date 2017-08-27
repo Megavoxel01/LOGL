@@ -24,7 +24,7 @@
 
 
 
-const GLuint screenWidth = 1880, screenHeight = 1040;
+const GLuint screenWidth = 1800, screenHeight = 1000;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);

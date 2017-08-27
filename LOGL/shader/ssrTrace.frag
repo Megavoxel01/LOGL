@@ -889,7 +889,7 @@ bool trace_ray_HIZ(
     //    return vec3(0);
     //}
     vec3 p=ssPosition;
-    vec3 v=ray_dir*0.001;
+    vec3 v=ray_dir*0.0001;
     uint camera=uint(1);
 
     float level = HIZ_START_LEVEL;
@@ -964,7 +964,7 @@ bool trace_ray_HIZ(
     //ray.z=0;
     
     hitPoint=ray;
-    if(hitFlag == 0 || iterations <=1 || iterations >= MAX_ITERATIONS-2) return false;
+    if(hitFlag == 0 || iterations <=1 || iterations >= MAX_ITERATIONS-1) return false;
     return true;
 
 }
@@ -994,18 +994,17 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
     vec4 ssrcolor=vec4(0,0,0,1);
     vec4 ssrcolor1=vec4(0,0,0,1);
     float samplenum=numSamples;
-    float coneTangent = mix(0.0, roughness*0.6, pow(dot(normalize(wsNormal),normalize(-viewDir)), 1.5) * sqrt(roughness));
     float flag=0;
     for(uint i=uint(1);i<=numSamples;i++)
     {
-        float scale=30;
-        uint numss=uint(3)*numSamples;
         float _random1=rand(TexCoords);
         float _random2=rand(TexCoords-0.0301f);
         int index1=int(_random1*100);
         int index2=int(_random2*100);
-        //float sampleBias=0.3;
         vec2 jitter=vec2(mix(haltonNum[index1%99],1.0,sampleBias),haltonNum[index2%99]);
+        //vec2 jitter;
+        //jitter.x = texture(blueNoise, TexCoords).x;
+        //jitter.y = texture(blueNoise, TexCoords+vec2(_random1)/vec2(screenWidth, screenHeight)).x;
         //vec2 jitter = Hammersley(uint(TexCoords.x*screenWidth+TexCoords.y*screenHeight), uint(screenWidth*screenHeight));
         //vec2 jitter=texture(blueNoise,vec2(TexCoords.x+_random1,TexCoords+_random2)).xy;
         //vec2 jitter=vec2(_random1,_random2);
@@ -1015,9 +1014,6 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
         H.xyz=normalize(H.xyz);
         vec3 dir=normalize(reflect(normalize(vsPosition),H.xyz));
         float ii=0;
-        //float CameraFacingReflectionAttenuation = 1 - smoothstep(0, 0.88, dot(vec3(0,0,1), H.xyz));
-        //if (CameraFacingReflectionAttenuation <= 0)
-          //  continue;
 
         flag=0;
         while(dot(dir,vsNormal)<1e-5)
@@ -1064,14 +1060,9 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
     //hitPixel/=vec2(screenWidth,screenHeight);
         if(isHit)
         {
-            //return vec4(test,1);
-            //float deviceZ=texture(sceneDepth, hitPoint.xy).x;
-            //return vec4(hitPoint.xy,deviceZ,1);
-            //return vec4(hitPoint,1);
-            //return vec4(test/2,1);
+
             vec4 hitPointVS=inverseProjectionMatrix*vec4(hitPoint,1);
             hitPointVS.xyz/=hitPointVS.w;
-            //hitPoint_WS=inverse(ViewMatrix)*vec4(hitPoint,1);
             hitPoint_WS=inverseViewMatrix*vec4(hitPointVS.xyz,1); 
             vec4 hitPoint_VS=preViewMatrix*hitPoint_WS;
             vec4 hitPoint_CS=preProjectionMatrix*hitPoint_VS;
@@ -1084,14 +1075,10 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             pdf=1;
             float IL=0;     
             BRDF=SsrBRDF(viewDir,(inverseViewMatrix*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
-            //SSRHitPixel=vec4(vec3(-1),pdf);
-            //return vec4(vsPosition,pdf);
-            //return vec4(hitPoint - test,1);
-            //return vec4(test,1);
             return vec4(hitPoint_WS.xyz,pdf);
         }
     }
-    //SSRHitPixel=vec4(vec3(-1),pdf);
+
     return vec4(vec3(-100000),pdf);
 }
 

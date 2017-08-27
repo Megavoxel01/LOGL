@@ -98,7 +98,8 @@ void main()
     const float gamma = 2.2f;
     vec4 positionWS=vec4(texture(gPosition,TexCoords).rgb,1);
     //if(LinearizeDepth(texture(sceneDepth,TexCoords).x)>=0.9f)
-    if(texture(sceneDepth,TexCoords).x>=0.999999f) 
+    //if(texture(sceneDepth,TexCoords).x>=0.999999f) 
+    if(false)
     {
     	color=texture(hdrBuffer, TexCoords);
     	//color=vec4(1,0,0,1);
@@ -133,6 +134,10 @@ void main()
     
 
 	vec3 cCenter  = texture(hdrBuffer, TexCoords).xyz;
+    if(!temporal) {
+        color=vec4(cCenter, 1);
+        return;
+    }
     cCenter.rgb/=1+Luminance(cCenter.rgb);
     vec3 cN1 = texture(hdrBuffer, TexCoords + texel * vec2(-1.0f, -1.0f)).xyz;
     cN1.rgb/=1+Luminance(cN1.rgb);

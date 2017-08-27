@@ -55,8 +55,8 @@ const float far=100.0f;
 
 const vec2 offset[28]=vec2[](
 vec2(0, 0),
-vec2(-1.0f, 1.0f),
-vec2(-1.0f, 0.0f),
+vec2(-2.0f, 2.0f),
+vec2(-2.0f, 0.0f),
 vec2(0, 2.0f),
 
 vec2(1.0f, 0.0f),
@@ -296,7 +296,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             float intersectionCircleRadius = coneTangent * length(prevUV - TexCoords);
             radius=log2(intersectionCircleRadius * max(screenWidth,screenHeight));
             radius/=100;
-            float mip = clamp(log2(intersectionCircleRadius * max(screenWidth,screenHeight)), 0.0, 5.0);
+            float mip = clamp(log2(intersectionCircleRadius * max(screenWidth,screenHeight)), 0.0, 8.0);
             //mip=0;
             //if(neighbourUV.x>=1.0||neighbourUV.y>=1.0||neighbourUV.x<=0||neighbourUV.y<=0)
             //{
