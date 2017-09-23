@@ -18,15 +18,15 @@ void Framebuffer::DrawBuffer() {
 }
 
 void Framebuffer::Bind() const {
-	glBindBuffer(GL_FRAMEBUFFER, bufferID);
+	glBindFramebuffer(GL_FRAMEBUFFER, bufferID);
 }
 
 void Framebuffer::Unbind() const {
-	glBindBuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Framebuffer::AttachTexture(const int& i, const GLenum& textureType, GLuint textureId) {
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, textureType, textureId, 0);
+void Framebuffer::AttachTexture(const int& i, const GLenum& attachmentType, const GLenum& textureType, GLuint textureId) {
+	glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType + i, textureType, textureId, 0);
 	textureAttachment.push_back(textureId);
 }
 

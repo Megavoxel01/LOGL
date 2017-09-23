@@ -18,6 +18,6 @@ public:
 	static void DrawBuffer();
 	void Bind() const;
 	void Unbind() const;
-	void AttachTexture(const int& i, const GLenum& textureType, GLuint textureId);
+	void AttachTexture(const int& i, const GLenum& attachmentType, const GLenum& textureType, GLuint textureId);
 
 };

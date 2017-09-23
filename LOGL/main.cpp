@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Camera.h"
+#include "framebuffer.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -720,71 +721,60 @@ int main()
 		GLfloat bColor = ((rand() % 100) / 200.0f) + 0.5; // Between 0.5 and 1.0
 		lightColors.push_back(glm::vec3(1, 1, 1));
 	}
-	GLuint gBuffer;
-	glGenFramebuffers(1, &gBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+	Framebuffer gBuffer;
+	gBuffer.Bind();
+
 	// Gbuffer:Position
 	TextureMap gPosition(screenWidth, screenHeight, GL_RGB32F, GL_RGB, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition.textureID, 0);
+	gBuffer.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition.textureID);
 	// Gbuffer:Normal+Roughness
 	TextureMap gNormal(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal.textureID, 0);
+	gBuffer.AttachTexture(1, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gNormal.textureID);
 	// Gbuffer:Albedo+Spec
 	TextureMap gAlbedoSpec(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec.textureID, 0);
+	gBuffer.AttachTexture(2, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gAlbedoSpec.textureID);
 	GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-	glDrawBuffers(3, attachments);
+	gBuffer.DrawBuffer(3, attachments);
 	err = glGetError();
 	//gbuffer depth
 
 	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID, 0);
-	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+	gBuffer.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
 
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		std::cout << "Failed to create frambuffer!" << std::endl;
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	gBuffer.Unbind();
 
 
 	//shadow
-	GLuint depthMapFBO;
-	glGenFramebuffers(1, &depthMapFBO);
+	//GLuint depthMapFBO;
+	//glGenFramebuffers(1, &depthMapFBO);
+	Framebuffer depthMapFBO;
 	const GLuint shadowWidth = 1024, shadowHeight = 1024;
-
 	TextureMap depthMap(shadowWidth, shadowHeight, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap.textureID, 0);
+	depthMapFBO.Bind();
+	depthMapFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap.textureID);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	depthMapFBO.Unbind();
 
 
 
-
-	GLuint hdrFBO;
-	glGenFramebuffers(1, &hdrFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-
+	Framebuffer hdrFBO;
+	hdrFBO.Bind();
 	TextureMap hdrColorBuffer(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hdrColorBuffer.textureID, 0);
+	hdrFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hdrColorBuffer.textureID);
 
-
-
-	GLuint linearFBO;
-	glGenFramebuffers(1, &linearFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
-
-
+	Framebuffer linearFBO;
+	linearFBO.Bind();
 	TextureMap linearColorBuffer(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, linearColorBuffer.textureID, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID, 0);
+	linearFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, linearColorBuffer.textureID);
+	linearFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
 
-	GLuint hizFBO;
-	glGenFramebuffers(1, &hizFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, hizFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID, 0);
+	Framebuffer hizFBO;
+	hizFBO.Bind();
+	hizFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
 
 
 
@@ -798,62 +788,35 @@ int main()
 
 
 
-
-	GLuint SSRHitpointFBO;
-	glGenFramebuffers(1, &SSRHitpointFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, SSRHitpointFBO);
-
+	Framebuffer SSRHitpointFBO;
+	SSRHitpointFBO.Bind();
 	TextureMap SSRHitPoint(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPoint.textureID, 0);
+	SSRHitpointFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPoint.textureID);
 
-
+	Framebuffer EmmisiveColorFBO;
+	EmmisiveColorFBO.Bind();
 	TextureMap SSRHitPixel(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	EmmisiveColorFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPixel.textureID);
+	EmmisiveColorFBO.Unbind();
 
-
-	GLuint EmmisiveColorFBO;
-	glGenFramebuffers(1, &EmmisiveColorFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, EmmisiveColorFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPixel.textureID, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-	GLuint SSRColorFBO;
-	glGenFramebuffers(1, &SSRColorFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, SSRColorFBO);
-
-
+	Framebuffer SSRColorFBO;
+	SSRColorFBO.Bind();
 	TextureMap currSSR(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currSSR.textureID, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	SSRColorFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currSSR.textureID);
+	SSRColorFBO.Unbind();
 
-	TextureMap prevColorFrame1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	Framebuffer prevFrameFBO;
+	prevFrameFBO.Bind();
+	TextureMap prevColorFrame1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);	
+	prevFrameFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, prevColorFrame1.textureID);
+	prevFrameFBO.Unbind();
 
-	GLuint prevFrameFBO;
-	glGenFramebuffers(1, &prevFrameFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, prevFrameFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, prevColorFrame1.textureID, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+	Framebuffer emmisiveFBO;
+	emmisiveFBO.Bind();
 	TextureMap prevSSR1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
-
-
 	TextureMap emmisiveDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-
-	GLuint emmisiveFBO;
-	glGenFramebuffers(1, &emmisiveFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, emmisiveFBO);
-	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, emmisivePos, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, emmisiveDepth.textureID, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	//glGenTextures(1, &hdrDepth);
-	//glBindTexture(GL_TEXTURE_2D, hdrDepth);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, screenWidth, screenHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_COMPONENT, GL_TEXTURE_2D, hdrDepth, 0);
-	//err = glGetError();
-
-
+	emmisiveFBO.AttachTexture(0, GL_DEPTH_COMPONENT, GL_TEXTURE_2D, emmisiveDepth.textureID);
+	emmisiveFBO.Unbind();
 
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -948,7 +911,7 @@ int main()
 			simpleDepthShader.SetUniform("model", model11);
 
 			glViewport(0, 0, shadowWidth, shadowHeight);
-			glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+			depthMapFBO.Bind();
 			glClear(GL_DEPTH_BUFFER_BIT);
 			glCullFace(GL_FRONT);
 			RenderQuad();
@@ -963,7 +926,7 @@ int main()
 				ourModel.Draw(simpleDepthShader);
 			}
 			glCullFace(GL_BACK);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			depthMapFBO.Unbind();
 		}
 		glViewport(0, 0, screenWidth, screenHeight);
 		//glDepthRange(0.0, 0.999);
@@ -988,7 +951,8 @@ int main()
 
 
 
-		glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+		//glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.bufferID);
+		gBuffer.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//previousView = view;
 		view = camera.GetViewMatrix();
@@ -1078,10 +1042,7 @@ int main()
 		//glCullFace(GL_BACK);
 
 
-
-
-
-		glBindFramebuffer(GL_FRAMEBUFFER, emmisiveFBO);
+		emmisiveFBO.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		emmisiveBuffer.Use();
 		model = glm::mat4();
@@ -1111,7 +1072,7 @@ int main()
 
 
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
-		glBindFramebuffer(GL_FRAMEBUFFER, hizFBO);
+		hizFBO.Bind();
 		hiZ.Use();
 		glDepthFunc(GL_ALWAYS);
 		glActiveTexture(GL_TEXTURE0);
@@ -1153,7 +1114,8 @@ int main()
 		t_hiz = (stopTime - startTime) / 1000000.0;
 
 		glDepthMask(GL_FALSE);
-		glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
+		//glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
+		linearFBO.Bind();
 		//glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
 		//glGenerateMipmap(GL_TEXTURE_2D);
 		//glBindTexture(GL_TEXTURE_2D, 0);
@@ -1215,7 +1177,7 @@ int main()
 
 
 
-		glBindFramebuffer(GL_FRAMEBUFFER, SSRHitpointFBO);
+		SSRHitpointFBO.Bind();
 
 		ssrTrace.Use();
 		ssrTrace.SetUniform("flagShadowMap", flagShadowMap);
@@ -1288,7 +1250,7 @@ int main()
 
 
 
-		glBindFramebuffer(GL_FRAMEBUFFER, EmmisiveColorFBO);
+		EmmisiveColorFBO.Bind();
 		emmisiveTrace.Use();
 		emmisiveTrace.SetUniform("flagShadowMap", flagShadowMap);
 		emmisiveTrace.SetUniform("ProjectionMatrix", projection);
@@ -1351,12 +1313,12 @@ int main()
 			t_emmit = (stopTime - startTime) / 1000000.0;
 		}
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		EmmisiveColorFBO.Unbind();
 		//glBindTexture(GL_TEXTURE_2D, SSRHitPixel);
 		//glGenerateMipmap(GL_TEXTURE_2D);
 		//glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, SSRColorFBO);
+		SSRColorFBO.Bind();
 		ssrResolve.Use();
 		ssrResolve.SetUniform("flagShadowMap", flagShadowMap);
 		ssrResolve.SetUniform("ProjectionMatrix", projection);
@@ -1426,7 +1388,8 @@ int main()
 
 
 		//glDisable(GL_DEPTH_TEST);
-		glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
+		//glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
+		linearFBO.Bind();
 		ssrCombine.Use();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, currSSR.textureID);
@@ -1436,7 +1399,8 @@ int main()
 
 
 
-		glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
+		//glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
+		linearFBO.Bind();
 		glDepthFunc(GL_LEQUAL);
 		glDepthRange(0.999, 0.99999);
 		skyboxShader.Use();
@@ -1463,7 +1427,8 @@ int main()
 
 
 
-		glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
+		//glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
+		linearFBO.Bind();
 		TAA.Use();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, linearColorBuffer.textureID);
@@ -1514,7 +1479,8 @@ int main()
 		glDepthMask(GL_TRUE);
 
 
-		glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+		//glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+		hdrFBO.Bind();
 		//glClear(GL_COLOR_BUFFER_BIT);
 		hdr.Use();
 		glActiveTexture(GL_TEXTURE0);
