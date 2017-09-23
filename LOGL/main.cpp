@@ -670,18 +670,19 @@ int main()
 	//std::unique_ptr<TextureMap> BRDFLut(new TextureMap("textures/integrateDFG_RG16F.dds"));
 	//std::unique_ptr<TextureMap> BRDFLut(new TextureMap("textures/PreIntegratedGF.png"));
 
-	GLuint BRDFLut;
-	glGenTextures(1, &BRDFLut);
+	//GLuint BRDFLut;
+	//glGenTextures(1, &BRDFLut);
 	int width, height, bpp;
 	unsigned char* image = stbi_load("./textures/PreIntegratedGF.png", &width, &height, &bpp, 3);
-	glBindTexture(GL_TEXTURE_2D, BRDFLut);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	//glBindTexture(GL_TEXTURE_2D, BRDFLut);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	//glGenerateMipmap(GL_TEXTURE_2D);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	TextureMap BRDFLut(width, height, GL_RGB16F, GL_RGB, GL_UNSIGNED_BYTE, image, GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
 	stbi_image_free(image);
 
 	std::cout << "Loading Texture Finished\n" << std::endl;
@@ -726,14 +727,8 @@ int main()
 	TextureMap gPosition(screenWidth, screenHeight, GL_RGB32F, GL_RGB, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition.textureID, 0);
 	// Gbuffer:Normal+Roughness
-	GLuint gNormal;
-	glGenTextures(1, &gNormal);
-	glBindTexture(GL_TEXTURE_2D, gNormal);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//TextureMap gNormal(screenWidth, screenHeight, GL_RGB32F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+	TextureMap gNormal(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal.textureID, 0);
 	// Gbuffer:Albedo+Spec
 	TextureMap gAlbedoSpec(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec.textureID, 0);
@@ -757,18 +752,10 @@ int main()
 	glGenFramebuffers(1, &depthMapFBO);
 	const GLuint shadowWidth = 1024, shadowHeight = 1024;
 
-	GLuint depthMap;
-	glGenTextures(1, &depthMap);
-	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
+	TextureMap depthMap(shadowWidth, shadowHeight, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap.textureID, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -780,15 +767,8 @@ int main()
 	glGenFramebuffers(1, &hdrFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
 
-	GLuint hdrColorBuffer;
-	glGenTextures(1, &hdrColorBuffer);
-	glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hdrColorBuffer, 0);
+	TextureMap hdrColorBuffer(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hdrColorBuffer.textureID, 0);
 
 
 
@@ -796,15 +776,9 @@ int main()
 	glGenFramebuffers(1, &linearFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
 
-	GLuint linearColorBuffer;
-	glGenTextures(1, &linearColorBuffer);
-	glBindTexture(GL_TEXTURE_2D, linearColorBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, linearColorBuffer, 0);
+
+	TextureMap linearColorBuffer(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, linearColorBuffer.textureID, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID, 0);
 
 	GLuint hizFBO;
@@ -829,31 +803,18 @@ int main()
 	glGenFramebuffers(1, &SSRHitpointFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, SSRHitpointFBO);
 
-	GLuint SSRHitPoint;
-	glGenTextures(1, &SSRHitPoint);
-	glBindTexture(GL_TEXTURE_2D, SSRHitPoint);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPoint, 0);
+	TextureMap SSRHitPoint(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPoint.textureID, 0);
 
-	GLuint SSRHitPixel;
-	glGenTextures(1, &SSRHitPixel);
-	glBindTexture(GL_TEXTURE_2D, SSRHitPixel);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	TextureMap SSRHitPixel(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 	GLuint EmmisiveColorFBO;
 	glGenFramebuffers(1, &EmmisiveColorFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, EmmisiveColorFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPixel, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPixel.textureID, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
@@ -861,42 +822,20 @@ int main()
 	glGenFramebuffers(1, &SSRColorFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, SSRColorFBO);
 
-	GLuint currSSR;
-	glGenTextures(1, &currSSR);
-	glBindTexture(GL_TEXTURE_2D, currSSR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currSSR, 0);
+
+	TextureMap currSSR(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currSSR.textureID, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
-
-	GLuint prevColorFrame1;
-	glGenTextures(1, &prevColorFrame1);
-	glBindTexture(GL_TEXTURE_2D, prevColorFrame1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	TextureMap prevColorFrame1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
 
 	GLuint prevFrameFBO;
 	glGenFramebuffers(1, &prevFrameFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, prevFrameFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, prevColorFrame1, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, prevColorFrame1.textureID, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	GLuint prevSSR1;
-	glGenTextures(1, &prevSSR1);
-	glBindTexture(GL_TEXTURE_2D, prevSSR1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	TextureMap prevSSR1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
 
 
 	TextureMap emmisiveDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
@@ -1239,19 +1178,19 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gNormal);
+		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec.textureID);
 		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, depthMap);
+		glBindTexture(GL_TEXTURE_2D, depthMap.textureID);
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
 		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1);
+		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_2D, blueNoiseTex->textureID);
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut);
+		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
 
 		glUniformMatrix4fv(glGetUniformLocation(shaderLightingPass.Program, "LightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
 		glUniform3fv(glGetUniformLocation(shaderLightingPass.Program, "lightPos"), 1, &lightPos[0]);
@@ -1306,19 +1245,19 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gNormal);
+		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec.textureID);
 		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, depthMap);
+		glBindTexture(GL_TEXTURE_2D, depthMap.textureID);
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
 		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1);
+		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_2D, blueNoiseTex->textureID);
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut);
+		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
 		RenderBufferQuad();
 		glQueryCounter(queryID[1], GL_TIMESTAMP);
@@ -1379,19 +1318,19 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gNormal);
+		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec.textureID);
 		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, depthMap);
+		glBindTexture(GL_TEXTURE_2D, depthMap.textureID);
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, emmisiveDepth.textureID);
 		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1);
+		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_2D, blueNoiseTex->textureID);
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut);
+		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
 		//glActiveTexture(GL_TEXTURE8);
 		//glBindTexture(GL_TEXTURE_2D, emmisivePos);
 		if (flagEmmisive){
@@ -1445,21 +1384,21 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gNormal);
+		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec.textureID);
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
 		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1);
+		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
 		glActiveTexture(GL_TEXTURE5);
 		glBindTexture(GL_TEXTURE_2D, blueNoiseTex->textureID);
 		glActiveTexture(GL_TEXTURE6);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut);
+		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
 		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, SSRHitPoint);
+		glBindTexture(GL_TEXTURE_2D, SSRHitPoint.textureID);
 		glActiveTexture(GL_TEXTURE8);
-		glBindTexture(GL_TEXTURE_2D, SSRHitPixel);
+		glBindTexture(GL_TEXTURE_2D, SSRHitPixel.textureID);
 		glActiveTexture(GL_TEXTURE9);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, IBL);
 
@@ -1480,8 +1419,8 @@ int main()
 		t_ssrResolve = (stopTime - startTime) / 1000000.0;
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glCopyImageSubData(currSSR, GL_TEXTURE_2D, 0, 0, 0, 0,
-			prevSSR1, GL_TEXTURE_2D, 0, 0, 0, 0,
+		glCopyImageSubData(currSSR.textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
+			prevSSR1.textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
 			screenWidth, screenHeight, 1);
 
 
@@ -1490,9 +1429,9 @@ int main()
 		glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
 		ssrCombine.Use();
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, currSSR);
+		glBindTexture(GL_TEXTURE_2D, currSSR.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, linearColorBuffer);
+		glBindTexture(GL_TEXTURE_2D, linearColorBuffer.textureID);
 		RenderBufferQuad();
 
 
@@ -1527,17 +1466,17 @@ int main()
 		glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
 		TAA.Use();
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, linearColorBuffer);
+		glBindTexture(GL_TEXTURE_2D, linearColorBuffer.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1);
+		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
 		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, gNormal);
+		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut);
+		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
 		TAA.SetUniform("ProjectionMatrix", projection);
 		TAA.SetUniform("ViewMatrix", view);
 		TAA.SetUniform("preProjectionMatrix", previousProjection);
@@ -1565,10 +1504,10 @@ int main()
 		glGetQueryObjectui64v(queryID[1], GL_QUERY_RESULT, &stopTime);
 
 		t_taa = (stopTime - startTime) / 1000000.0;
-		glCopyImageSubData(linearColorBuffer, GL_TEXTURE_2D, 0, 0, 0, 0,
-			prevColorFrame1, GL_TEXTURE_2D, 0, 0, 0, 0,
+		glCopyImageSubData(linearColorBuffer.textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
+			prevColorFrame1.textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
 			screenWidth, screenHeight, 1);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1);
+		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -1579,7 +1518,7 @@ int main()
 		//glClear(GL_COLOR_BUFFER_BIT);
 		hdr.Use();
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, linearColorBuffer);
+		glBindTexture(GL_TEXTURE_2D, linearColorBuffer.textureID);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 
@@ -1599,9 +1538,9 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		toScreen.Use();
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, hdrColorBuffer);
+		glBindTexture(GL_TEXTURE_2D, hdrColorBuffer.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, SSRHitPoint);
+		glBindTexture(GL_TEXTURE_2D, SSRHitPoint.textureID);
 		//glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		//glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);

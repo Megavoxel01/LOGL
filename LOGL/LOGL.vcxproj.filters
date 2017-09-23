@@ -16,6 +16,9 @@
     <Filter Include="IMGUI">
       <UniqueIdentifier>{eb09f7cb-7d2e-4eec-afbe-7eccc7457937}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\LOGL">
+      <UniqueIdentifier>{4dc211fe-f9db-4294-95b8-41322773e4d2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -118,19 +121,40 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="includes\LOGL\camera.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="includes\LOGL\filesystem.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="includes\LOGL\mesh.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="includes\LOGL\model.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="includes\LOGL\shader.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\LOGL\Application.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\LOGL\DeferredRenderer.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\LOGL\framebuffer.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\LOGL\imgui_impl_glfw.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\LOGL\Terrain.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\LOGL\TextureMap.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\LOGL\Utility.h">
+      <Filter>头文件\LOGL</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
