@@ -549,7 +549,10 @@ int main()
 	GLuint IBL;
 	//glGenTextures(GL_TEXTURE_2D, &IBL);
 	IBL = loadIBL(IBLs);
-
+	struct SsrResolveUniform {
+		float haltonNum[200];
+	}ssrResolveUniform;
+	GLuint ssrResolveSSBO = 0;
 
 
 	shaderLightingPass.Use();
@@ -572,6 +575,12 @@ int main()
 	glUniform1i(glGetUniformLocation(ssrTrace.Program, "prevFrame1"), 5);
 	glUniform1i(glGetUniformLocation(ssrTrace.Program, "blueNoise"), 6);
 	glUniform1i(glGetUniformLocation(ssrTrace.Program, "BRDFLut"), 7);
+	GLuint ssrTraceSSBO = 0;
+	glGenBuffers(1, &ssrTraceSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssrTraceSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(SsrResolveUniform), &ssrResolveUniform, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssrTraceSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	emmisiveTrace.Use();
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gPosition"), 0);
@@ -595,6 +604,12 @@ int main()
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpoint"), 7);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpixel"), 8);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "IBL"), 9);
+
+	glGenBuffers(1, &ssrResolveSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssrResolveSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(SsrResolveUniform), &ssrResolveUniform, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssrResolveSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	ssrCombine.Use();
 	glUniform1i(glGetUniformLocation(ssrCombine.Program, "ssrBuffer"), 0);
@@ -849,10 +864,10 @@ int main()
 	std::random_device rd;
 	std::mt19937 mt(rd());
 	std::uniform_real_distribution<float> dist(1.0, 1000.0);
-	float _halton[1005];
-	for (int i = 1; i <= 1000; i++)
+	//float _halton[1005];
+	for (int i = 1; i <= 200; i++)
 	{
-		_halton[i] = halton(i, 3);
+		ssrResolveUniform.haltonNum[i-1] = halton(i, 3);
 	}
 
 	GLuint64 startTime, stopTime;
@@ -919,14 +934,14 @@ int main()
 		previousProjection = projection;
 		previousfov2Projection = fov2projection;
 		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
-		projection[2][0] = _halton[(int)currentFrameIndex % 999] * 2 - 1;
-		projection[2][1] = _halton[(int)(currentFrameIndex + 15) % 999] * 2 - 1;
+		projection[2][0] = ssrResolveUniform.haltonNum[(int)currentFrameIndex % 200] * 2 - 1;
+		projection[2][1] = ssrResolveUniform.haltonNum[(int)(currentFrameIndex + 15) % 200] * 2 - 1;
 		projection[2][0] /= screenWidth * 64;
 		projection[2][1] /= screenHeight * 64;
 
 		fov2projection = glm::perspective(camera.Zoom * 2, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
-		fov2projection[2][0] = _halton[(int)currentFrameIndex % 999] * 2 - 1;
-		fov2projection[2][1] = _halton[(int)(currentFrameIndex + 15) % 999] * 2 - 1;
+		fov2projection[2][0] = ssrResolveUniform.haltonNum[(int)currentFrameIndex % 999] * 2 - 1;
+		fov2projection[2][1] = ssrResolveUniform.haltonNum[(int)(currentFrameIndex + 15) % 999] * 2 - 1;
 		fov2projection[2][0] /= screenWidth * 64;
 		fov2projection[2][1] /= screenHeight * 64;
 
@@ -1152,10 +1167,10 @@ int main()
 			shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Quadratic").c_str(), quadratic);
 		}
 		//float _halton[200];
-		for (int i = 0; i <= 99; i++)
-		{
-			shaderLightingPass.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), _halton[i]);
-		}
+		//for (int i = 0; i <= 99; i++)
+		//{
+		//	shaderLightingPass.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), ssrResolveUniform.haltonNum[i]);
+		//}
 		glUniform3fv(glGetUniformLocation(shaderLightingPass.Program, "viewPos"), 1, &camera.Position[0]);
 		RenderBufferQuad();
 
@@ -1183,10 +1198,14 @@ int main()
 		ssrTrace.SetUniform("initStep", initStep);
 		ssrTrace.SetUniform("sampleBias", sampleBias);
 		ssrTrace.SetUniform("flagHiZ", flagHiZ);
-		for (int i = 0; i <= 99; i++)
-		{
-			ssrTrace.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), _halton[i]);
-		}
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssrResolveSSBO);
+		GLvoid* ssrTraceSSBOPointer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+		memcpy(ssrTraceSSBOPointer, &ssrResolveUniform, sizeof(SsrResolveUniform));
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		//for (int i = 0; i <= 99; i++)
+		//{
+		//	ssrTrace.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), ssrResolveUniform.haltonNum[i]);
+		//}
 		glUniform3fv(glGetUniformLocation(ssrTrace.Program, "viewPos"), 1, &camera.Position[0]);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
@@ -1255,10 +1274,12 @@ int main()
 		emmisiveTrace.SetUniform("mipLevel", (float)depthLevel);
 		emmisiveTrace.SetUniform("initStep", initStep);
 		emmisiveTrace.SetUniform("sampleBias", sampleBias);
-		for (int i = 0; i <= 99; i++)
-		{
-			emmisiveTrace.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), _halton[i]);
-		}
+
+		
+		//for (int i = 0; i <= 99; i++)
+		//{
+		//	emmisiveTrace.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), ssrResolveUniform.haltonNum[i]);
+		//}
 		glUniform3fv(glGetUniformLocation(emmisiveTrace.Program, "viewPos"), 1, &camera.Position[0]);
 
 		glActiveTexture(GL_TEXTURE0);
@@ -1322,11 +1343,16 @@ int main()
 		ssrResolve.SetUniform("debugTest", debugTest);
 		ssrResolve.SetUniform("rangle", angle);
 		ssrResolve.SetUniform("flagEmmisive", flagEmmisive);
-		for (int i = 0; i <= 99; i++)
-		{
-			ssrResolve.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), _halton[i]);
-		}
-		glUniform3fv(glGetUniformLocation(ssrResolve.Program, "viewPos"), 1, &camera.Position[0]);
+		ssrResolve.SetUniform("viewPos", camera.Position);
+		//for (int i = 0; i <= 99; i++)
+		//{
+		//	ssrResolve.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), ssrResolveUniform.haltonNum[i]);
+		//}
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssrResolveSSBO);
+		GLvoid* p1 = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+		memcpy(p1, &ssrResolveUniform, sizeof(SsrResolveUniform));
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		//glUniform3fv(glGetUniformLocation(ssrResolve.Program, "viewPos"), 1, &camera.Position[0]);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE1);

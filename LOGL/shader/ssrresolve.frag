@@ -1,4 +1,4 @@
-#version 330 core
+#version 450 core
 
 out vec4 FragColor;
 in vec2 TexCoords;
@@ -26,9 +26,11 @@ uniform float inputStride;
 uniform float sampleBias;
 
 //uniform float tempRoughness;
-
-uniform float haltonNum[100];
-
+layout (std430, binding=1) buffer shader_data
+{ 
+    float haltonNum[200];
+};
+//uniform float haltonNum[200];
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 uniform mat4 LightSpaceMatrix;
