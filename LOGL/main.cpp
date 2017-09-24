@@ -740,16 +740,10 @@ int main()
 
 	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	gBuffer.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
-
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cout << "Failed to create frambuffer!" << std::endl;
 	gBuffer.Unbind();
 
 
 	//shadow
-	//GLuint depthMapFBO;
-	//glGenFramebuffers(1, &depthMapFBO);
 	Framebuffer depthMapFBO;
 	const GLuint shadowWidth = 1024, shadowHeight = 1024;
 	TextureMap depthMap(shadowWidth, shadowHeight, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
@@ -775,17 +769,7 @@ int main()
 	Framebuffer hizFBO;
 	hizFBO.Bind();
 	hizFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
-
-
-
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cout << "Framebuffer not complete!" << std::endl;
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-
-
+	hizFBO.Unbind();
 
 
 	Framebuffer SSRHitpointFBO;
