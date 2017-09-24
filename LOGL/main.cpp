@@ -595,6 +595,36 @@ int main()
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpoint"), 7);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpixel"), 8);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "IBL"), 9);
+	struct SsrResolveUniform {
+		//int flagShadowMap;
+		//float extRand1;
+		//float resolve;
+		//float binaryIteration;
+		//float inputStride;
+		//float sampleBias;
+
+		//float frameIndex;
+		//float screenWidth;
+		//float screenHeight;
+		//int debugTest;
+		//float rangle;
+		//int flagEmmisive;
+
+		//glm::vec4 viewPos;
+		//float ProjectionMatrix[16];
+		//glm::mat4 ViewMatrix;
+
+		//glm::mat4x4 preProjectionMatrix;
+		//glm::mat4x4 preViewMatrix;
+		//glm::mat4x4 inverseViewMatrix;
+
+	}ssrResolveUniform;
+	//GLuint ssrResolveSSBO;
+	//glGenBuffers(1, &ssrResolveSSBO);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssrResolveSSBO);
+	//glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(SsrResolveUniform), &ssrResolveUniform, GL_DYNAMIC_COPY);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssrResolveSSBO);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	ssrCombine.Use();
 	glUniform1i(glGetUniformLocation(ssrCombine.Program, "ssrBuffer"), 0);
@@ -613,6 +643,21 @@ int main()
 	hdr.Use();
 	glUniform1i(glGetUniformLocation(hdr.Program, "linearBuffer"), 0);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "sceneDepth"), 1);
+	struct HdrUniform {
+		int hdr;
+		int temporal;
+		float exposure;
+		float screenWidth;
+		float screenHeight;
+		float TAAscale;
+		float TAAresponse;
+	}hdrUniform;
+	GLuint hdrSSBO;
+	glGenBuffers(1, &hdrSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, hdrSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(hdrUniform), &hdrUniform, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, hdrSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	toScreen.Use();
 	glUniform1i(glGetUniformLocation(toScreen.Program, "hdrBuffer"), 0);
@@ -741,15 +786,7 @@ int main()
 	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	gBuffer.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
 
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cout << "Failed to create frambuffer!" << std::endl;
-	gBuffer.Unbind();
-
-
 	//shadow
-	//GLuint depthMapFBO;
-	//glGenFramebuffers(1, &depthMapFBO);
 	Framebuffer depthMapFBO;
 	const GLuint shadowWidth = 1024, shadowHeight = 1024;
 	TextureMap depthMap(shadowWidth, shadowHeight, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
@@ -775,17 +812,6 @@ int main()
 	Framebuffer hizFBO;
 	hizFBO.Bind();
 	hizFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
-
-
-
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cout << "Framebuffer not complete!" << std::endl;
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-
-
 
 
 	Framebuffer SSRHitpointFBO;
@@ -817,6 +843,10 @@ int main()
 	TextureMap emmisiveDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	emmisiveFBO.AttachTexture(0, GL_DEPTH_COMPONENT, GL_TEXTURE_2D, emmisiveDepth.textureID);
 	emmisiveFBO.Unbind();
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Failed to create frambuffer!" << std::endl;
+	gBuffer.Unbind();
 
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1320,6 +1350,33 @@ int main()
 
 		SSRColorFBO.Bind();
 		ssrResolve.Use();
+		//ssrResolveUniform.flagShadowMap=flagShadowMap;
+		//ssrResolveUniform.extRand1 = dist(mt);
+		//ssrResolveUniform.resolve = resolve;
+		//ssrResolveUniform.binaryIteration = binaryIteration;
+		//ssrResolveUniform.inputStride = pixelStride;
+		//ssrResolveUniform.sampleBias = sampleBias;
+		//ssrResolveUniform.frameIndex = currentFrameIndex;
+		//ssrResolveUniform.screenWidth = screenWidth;
+		//ssrResolveUniform.screenHeight = screenHeight;
+		//ssrResolveUniform.debugTest = debugTest;
+		//ssrResolveUniform.rangle = angle;
+		//ssrResolveUniform.flagEmmisive = flagEmmisive;
+		//ssrResolveUniform.viewPos.x = camera.Position.x;
+		//ssrResolveUniform.viewPos.y = camera.Position.y;
+		//ssrResolveUniform.viewPos.z = camera.Position.z;
+		//std::copy(glm::value_ptr(projection), glm::value_ptr(projection) + 16, ssrResolveUniform.ProjectionMatrix);
+		//ssrResolveUniform.ViewMatrix = view;
+		//ssrResolveUniform.preProjectionMatrix = previousProjection;
+		//ssrResolveUniform.preViewMatrix = previousView;
+		//ssrResolveUniform.inverseViewMatrix = glm::inverse(view);
+
+
+
+		//glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssrResolveSSBO);
+		//GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+		//memcpy(p, &ssrResolveUniform, sizeof(ssrResolveUniform));
+		//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 		ssrResolve.SetUniform("flagShadowMap", flagShadowMap);
 		ssrResolve.SetUniform("ProjectionMatrix", projection);
 		ssrResolve.SetUniform("ViewMatrix", view);
@@ -1338,11 +1395,12 @@ int main()
 		ssrResolve.SetUniform("debugTest", debugTest);
 		ssrResolve.SetUniform("rangle", angle);
 		ssrResolve.SetUniform("flagEmmisive", flagEmmisive);
+		ssrResolve.SetUniform("viewPos", camera.Position);
 		for (int i = 0; i <= 99; i++)
 		{
 			ssrResolve.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), _halton[i]);
 		}
-		glUniform3fv(glGetUniformLocation(ssrResolve.Program, "viewPos"), 1, &camera.Position[0]);
+		//glUniform3fv(glGetUniformLocation(ssrResolve.Program, "viewPos"), 1, &camera.Position[0]);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 		glActiveTexture(GL_TEXTURE1);
@@ -1488,13 +1546,26 @@ int main()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
 
-		hdr.SetUniform("hdr", flagHDR);
-		hdr.SetUniform("exposure", exposure);
-		hdr.SetUniform("screenWidth", (float)screenWidth);
-		hdr.SetUniform("screenHeight", (float)screenHeight);
-		hdr.SetUniform("temporal", flagTemporal);
-		hdr.SetUniform("TAAscale", TAAscale);
-		hdr.SetUniform("TAAresponse", TAAresponse);
+		hdrUniform.hdr = flagHDR;
+		hdrUniform.temporal = flagTemporal;
+		hdrUniform.exposure = exposure;
+		hdrUniform.screenWidth = screenWidth;
+		hdrUniform.screenHeight = screenWidth;
+		hdrUniform.TAAscale = exposure;
+		hdrUniform.TAAresponse = TAAresponse;
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, hdrSSBO);
+		GLvoid* ssrResolvePointer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+		memcpy(ssrResolvePointer, &hdrUniform, sizeof(hdrUniform));
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+		//hdr.SetUniform("hdr", flagHDR);
+		//hdr.SetUniform("exposure", exposure);
+		//hdr.SetUniform("screenWidth", (float)screenWidth);
+		//hdr.SetUniform("screenHeight", (float)screenHeight);
+		//hdr.SetUniform("temporal", flagTemporal);
+		//hdr.SetUniform("TAAscale", TAAscale);
+		//hdr.SetUniform("TAAresponse", TAAresponse);
 
 		RenderBufferQuad();
 
@@ -1531,7 +1602,7 @@ int main()
 			//ImGui::ColorEdit3("clear color", (float*)&clear_color);
 			//if (ImGui::Button("Test Window")) show_test_window ^= 1;
 			//if (ImGui::Button("Another Window")) show_another_window ^= 1;
-			//ImGui::SliderFloat("exposure", &exposure, 0.0f, 6.0f);
+			ImGui::SliderFloat("exposure", &exposure, 0.0f, 6.0f);
 			ImGui::SliderFloat("roughness", &tempRoughness, 0.014f, 0.99f);
 			ImGui::SliderFloat("resolve", &resolve, 1.0f, 12.1f);
 			//ImGui::SliderFloat("BinaryIter",&binaryIteration,1.0f,50.0f);

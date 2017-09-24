@@ -4,14 +4,18 @@ in vec2 TexCoords;
 
 uniform sampler2D linearBuffer;
 uniform sampler2D sceneDepth;
-uniform float exposure;
-uniform bool hdr;
-uniform float screenWidth;
-uniform float screenHeight;
 
-uniform bool temporal;
-uniform float TAAscale;
-uniform float TAAresponse;
+layout(std430, binding = 1) buffer HdrSSBO
+{
+    bool hdr;
+    bool temporal;
+    float exposure;
+    float screenWidth;
+    float screenHeight;
+    float TAAscale;
+    float TAAresponse;
+}hdrSSBO;
+
 
 const float A=0.15;
 const float B=0.50;
@@ -41,7 +45,7 @@ void main()
 {             
     const float gamma = 2.2f;
 	vec3 hdrColor=texture(linearBuffer, TexCoords).rgb;
-	hdrColor*=exposure;
+	hdrColor*=hdrSSBO.exposure;
 	float exBias=2.0f;
 	//vec3 curr=FilmicToneMapping(exBias*hdrColor);
 	//vec3 whiteScale=1.0f/FilmicToneMapping(vec3(W));
@@ -53,7 +57,8 @@ void main()
     // also gamma correct while we're at it       
     //result = pow(result, vec3(1.0f / gamma));
     //color = hdr?vec4(result, 1.0f):vec4(hdrColor,1.0f);
-    color=vec4(curr,1.0f);
+    color= vec4(curr, 1.0f);
+    //color= hdrSSBO.hdr ? vec4(curr,1.0f) : vec4(hdrColor, 1.0f);
 
     //color=previous;
     //color.xyz/=1-Luminance(color.xyz);
