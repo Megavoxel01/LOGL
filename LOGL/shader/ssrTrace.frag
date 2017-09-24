@@ -12,11 +12,6 @@ uniform sampler2D sceneDepth;
 uniform sampler2D prevFrame1;
 uniform sampler2D blueNoise;
 uniform sampler2D BRDFLut;
-
-
-uniform float haltonNum[100];
-
-
 uniform bool flagShadowMap;
 uniform float extRand1;
 uniform float resolve;
@@ -24,7 +19,16 @@ uniform float binaryIteration;
 uniform float inputStride;
 uniform float mipLevel;
 uniform bool flagHiZ;
+
+
+
 //uniform float tempRoughness;
+
+
+
+
+uniform float haltonNum[100];
+
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 uniform mat4 LightSpaceMatrix;

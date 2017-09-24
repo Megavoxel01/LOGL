@@ -1,4 +1,4 @@
-#version 450 core
+#version 330 core
 
 out vec4 FragColor;
 in vec2 TexCoords;
@@ -16,16 +16,8 @@ uniform sampler2D ssrHitpixel;
 uniform sampler2D prevSSR1;
 uniform samplerCube IBL;
 
-//layout(std430, binding = 2) buffer ssrResolveSSBO
-//{    
-    
-//};
-uniform mat4 ProjectionMatrix;
-uniform mat4 ViewMatrix;
-uniform mat4 preProjectionMatrix;
-uniform mat4 preViewMatrix;
-uniform mat4 inverseViewMatrix;
-uniform vec4 viewPos;
+
+
 uniform bool flagShadowMap;
 uniform float extRand1;
 uniform float resolve;
@@ -37,7 +29,15 @@ uniform float sampleBias;
 
 uniform float haltonNum[100];
 
+uniform vec3 viewPos;
+uniform vec3 lightPos;
+uniform mat4 LightSpaceMatrix;
+uniform mat4x4 ProjectionMatrix;
+uniform mat4 ViewMatrix;
 
+uniform mat4x4 preProjectionMatrix;
+uniform mat4x4 preViewMatrix;
+uniform mat4x4 inverseViewMatrix;
 
 uniform float frameIndex;
 uniform float screenWidth;
@@ -378,8 +378,9 @@ void main()
     vec3 Diffuse = texture(gAlbedoSpec, TexCoords).rgb;
     //Diffuse=vec3(1,0,0);
     float Specular = texture(gAlbedoSpec, TexCoords).a;
+    vec4 fragPosLightSpace=LightSpaceMatrix*vec4(FragPos,1.0f);
     vec3 lighting = vec3(0.0f);
-    vec3 viewDir  = normalize(viewPos.xyz - FragPos);
+    vec3 viewDir  = normalize(viewPos - FragPos);
     if(Gloss<0.7f)
     {
         FragColor=SSRef1(FragPos,Normal,viewDir,Gloss,Specular,Diffuse);
