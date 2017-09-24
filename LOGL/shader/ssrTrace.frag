@@ -874,7 +874,7 @@ bool trace_ray_HIZ(
 
     csDir = csOrig+csDir;
     vec4 psReflectionVector = ProjectionMatrix * vec4(csDir, 1.0);
-    vec3 ndcEndPoint = psReflectionVector.xyz / psReflectionVector.w;
+    vec3 ndcEndPoint = psReflectionVector.xyz / max(psReflectionVector.w, 1e-5);
     vec3 ssEndPoint = 0.5f * ndcEndPoint + 0.5f;
     //ssReflectionVector = normalize(ssReflectionVector - ssPosition);
 
