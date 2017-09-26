@@ -1,4 +1,4 @@
-#version 330 core
+#version 450 core
 
 in vec2 TexCoords;
 out vec4 SSRHitPoint;
@@ -24,10 +24,10 @@ uniform bool flagHiZ;
 
 //uniform float tempRoughness;
 
-
-
-
-uniform float haltonNum[100];
+layout (std430, binding=1) buffer shader_data
+{ 
+    float haltonNum[200];
+};
 
 uniform vec3 viewPos;
 uniform vec3 lightPos;
