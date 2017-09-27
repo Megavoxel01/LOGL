@@ -40,6 +40,7 @@ uniform mat4 ViewMatrix;
 uniform mat4x4 preProjectionMatrix;
 uniform mat4x4 preViewMatrix;
 uniform mat4x4 inverseViewMatrix;
+uniform mat4 inverseProjectionMatrix;
 
 uniform float frameIndex;
 uniform float screenWidth;
@@ -114,6 +115,31 @@ vec2 rotate(vec2 v, float a) {
     float c = cos(a);
     mat2 m = mat2(c, -s, s, c);
     return m * v;
+}
+
+vec3 WorldPosFromDepth(){
+    float z = texture(sceneDepth, TexCoords).r;
+    z = z * 2.0 - 1.0;
+
+    vec4 clipSpacePosition = vec4(TexCoords.xy * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
+
+    viewSpacePosition /= viewSpacePosition.w;
+
+    vec4 worldSpacePosition = inverseViewMatrix * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
+}
+
+vec3 ViewPosFromDepth(){
+    float z = texture(sceneDepth, TexCoords).r;
+    z = z * 2.0 - 1.0;
+
+    vec4 clipSpacePosition = vec4(TexCoords.xy * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
+
+    viewSpacePosition /= viewSpacePosition.w;
+    return viewSpacePosition.xyz;
 }
 
 float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float specStrength,out float PDF,out float IL)
@@ -342,7 +368,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
         //return vec4(1);
         vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(wsNormal)));
         //return vec4(iblRef,1);
-        float mipL=roughness*2.5;
+        float mipL=roughness*1.5;
         vec3 IBLColor=texture(IBL,-iblRef, mipL).rgb;
         IBLColor.xyz/=1+Luminance(IBLColor.rgb);
         ssrcolor.xyz=IBLColor;
@@ -373,7 +399,8 @@ void main()
 {             
 
     // ALL IN WORLD SPACE!!!
-    vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    //vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    vec3 FragPos = WorldPosFromDepth();
     vec3 Normal = texture(gNormal, TexCoords).rgb;
     float Gloss=texture(gNormal, TexCoords).a;
     //tempRoughness=Gloss;
@@ -386,6 +413,13 @@ void main()
     if(Gloss<0.7f)
     {
         FragColor=SSRef1(FragPos,Normal,viewDir,Gloss,Specular,Diffuse);
+    }else{
+        vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(Normal)));
+        //return vec4(iblRef,1);
+        float mipL=Gloss*1.5;
+        vec3 IBLColor=texture(IBL,-iblRef, mipL).rgb;
+        IBLColor.xyz/=1+Luminance(IBLColor.rgb);
+        FragColor=vec4(IBLColor, 1.0f);
     }
     float roughness=Gloss;
     float NdotV=max(dot(normalize(Normal),normalize(viewDir)),1e-5);

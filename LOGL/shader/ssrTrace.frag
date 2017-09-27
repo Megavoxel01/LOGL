@@ -94,7 +94,30 @@ float LinearizeDepth(float depth)
     return (2.0*near)/(far+near-z*(far-near));
 }
 
+vec3 WorldPosFromDepth(){
+    float z = texture(sceneDepth, TexCoords).r;
+    z = z * 2.0 - 1.0;
 
+    vec4 clipSpacePosition = vec4(TexCoords.xy * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
+
+    viewSpacePosition /= viewSpacePosition.w;
+
+    vec4 worldSpacePosition = inverseViewMatrix * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
+}
+
+vec3 ViewPosFromDepth(){
+    float z = texture(sceneDepth, TexCoords).r;
+    z = z * 2.0 - 1.0;
+
+    vec4 clipSpacePosition = vec4(TexCoords.xy * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
+
+    viewSpacePosition /= viewSpacePosition.w;
+    return viewSpacePosition.xyz;
+}
 
 float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float specStrength,out float PDF,out float IL)
 {
@@ -971,6 +994,9 @@ bool trace_ray_HIZ(
 
 vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
 {
+    if(roughness>0.7f){
+        
+    }
 
     vec3 vsPosition=(ViewMatrix*vec4(wsPosition,1.0f)).xyz;
     vec3 vsNormal=(ViewMatrix*vec4(wsNormal,0)).xyz;
@@ -1083,11 +1109,14 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
 }
 
 
+
+
 void main()
 {             
 
     // ALL IN WORLD SPACE!!!
-    vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    //vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    vec3 FragPos = WorldPosFromDepth();
     vec3 Normal = texture(gNormal, TexCoords).rgb;
     float Gloss=texture(gNormal, TexCoords).a;
     //tempRoughness=Gloss;

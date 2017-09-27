@@ -40,6 +40,7 @@ uniform mat4 ViewMatrix;
 uniform mat4x4 preProjectionMatrix;
 uniform mat4x4 preViewMatrix;
 uniform mat4x4 inverseViewMatrix;
+uniform mat4x4 inverseProjectionMatrix;
 
 uniform float frameIndex;
 
@@ -82,9 +83,30 @@ float LinearizeDepth(float depth)
     return (2.0*near)/(far+near-z*(far-near));
 }
 
+vec3 WorldPosFromDepth(){
+    float z = texture(sceneDepth, TexCoords).r;
+    z = z * 2.0 - 1.0;
 
+    vec4 clipSpacePosition = vec4(TexCoords.xy * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
 
+    viewSpacePosition /= viewSpacePosition.w;
 
+    vec4 worldSpacePosition = inverseViewMatrix * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
+}
+
+vec3 ViewPosFromDepth(){
+    float z = texture(sceneDepth, TexCoords).r;
+    z = z * 2.0 - 1.0;
+
+    vec4 clipSpacePosition = vec4(TexCoords.xy * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
+
+    viewSpacePosition /= viewSpacePosition.w;
+    return viewSpacePosition.xyz;
+}
 
 
 
@@ -339,525 +361,6 @@ bool rayIntersectsDepthBF1( float zA, float zB, vec2 uv, float zThickness)
     return zB <= cameraZ && zA >= cameraZ-zThickness;
 }
 
-            
-
-
-bool traceScreenSpaceRay1(
- // Camera-space ray origin, which must be within the view volume
- point3 csOrig, 
- 
- // Unit length camera-space ray direction
- vec3 csDir,
- 
- // A projection matrix that maps to pixel coordinates (not [-1, +1]
- // normalized device coordinates)
- mat4x4 proj, 
- 
- // The camera-space Z buffer (all negative values)
- sampler2D csZBuffer,
- 
- // Dimensions of csZBuffer
- vec2 csZBufferSize,
- 
- // Camera space thickness to ascribe to each pixel in the depth buffer
- float zThickness, 
- 
- // (Negative number)
- float nearPlaneZ, 
- 
- // Step in horizontal or vertical pixels between samples. This is a float
- // because integer math is slow on GPUs, but should be set to an integer >= 1
- float stride,
- 
- // Number between 0 and 1 for how far to bump the ray in stride units
- // to conceal banding artifacts
- float jitter,
- 
- // Maximum number of iterations. Higher gives better images but may be slow
- const float maxSteps, 
- 
- // Maximum camera-space distance to trace before returning a miss
- float maxDistance, 
- 
- // Pixel coordinates of the first intersection with the scene
- out point2 hitPixel, 
- 
- // Camera space location of the ray hit
- out point3 hitPoint,
- out vec3 P00) {
- 
-    
-    // Clip to the near plane    
-    float rayLength = ((csOrig.z + csDir.z * maxDistance) > -nearPlaneZ) ?
-        (-nearPlaneZ - csOrig.z) / csDir.z : maxDistance;
-    point3 csEndPoint = csOrig + csDir* rayLength;
-    //P00=csEndPoint;
- 
-    // Project into homogeneous clip space
-    vec4 H0 = proj * vec4(csOrig, 1.0);
-    vec4 H1 = proj * vec4(csEndPoint, 1.0);
-    float k0 = 1.0f / H0.w, k1 = 1.0f / H1.w;
- 
-    // The interpolated homogeneous version of the camera-space points  
-    point3 Q0 = csOrig * k0, Q1 = csEndPoint * k1;
-
-    // Screen-space endpoints
-    point2 P0 = H0.xy * k0, P1 = H1.xy * k1;
-    //P00=vec3(P1,1);
-    P0=(P0*0.5f+vec2(0.5f))*csZBufferSize;
-    P1=(P1*0.5f+vec2(0.5f))*csZBufferSize;
-    //P00=vec3(P0/csZBufferSize,0);
-    
- 
-    // If the line is degenerate, make it cover at least one pixel
-    // to avoid handling zero-pixel extent as a special case later
-    P1 += vec2((distanceSquared(P0, P1) < 0.0001) ? 0.01 : 0.0);
-    vec2 delta = P1 - P0;
- 
-    // Permute so that the primary iteration is in x to collapse
-    // all quadrant-specific DDA cases later
-    bool permute = false;
-    if (abs(delta.x) < abs(delta.y)) { 
-        // This is a more-vertical line
-        permute = true; delta = delta.yx; P0 = P0.yx; P1 = P1.yx; 
-    }
- 
-    float stepDir = sign(delta.x);
-    //float stepDir=1;
-    float invdx = stepDir / delta.x;
- 
-    // Track the derivatives of Q and k
-    vec3  dQ = (Q1 - Q0) * invdx;
-    float dk = (k1 - k0) * invdx;
-    vec2  dP = vec2(stepDir, delta.y * invdx);
- 
-    // Scale derivatives by the desired pixel stride and then
-    // offset the starting values by the jitter fraction
-    dP *= stride; dQ *= stride; dk *= stride;
-    P0 += dP * jitter; Q0 += dQ * jitter; k0 += dk * jitter;
- 
-    // Slide P from P0 to P1, (now-homogeneous) Q from Q0 to Q1, k from k0 to k1
-    point3 Q = Q0;
-    point2 P = P0;
-    float k=k0;
-    // Adjust end condition for iteration direction
-    float end = P1.x * stepDir;
-    
-    float prevZMaxEstimate = 0;
-    float rayZMin = prevZMaxEstimate, rayZMax = prevZMaxEstimate;
-    float sceneZMax = rayZMax + 1000;
-
-
-    //float strideScaler = 1.0 - min( 1.0, -csOrig.z / 0.03f);
-    //stride = 1.0 + strideScaler * stride;
-
-
-
-    
-    vec4 pqk = vec4( P, Q.z, k);
-    vec4 dPQK = vec4( dP, dQ.z, dk);
-    bool intersect=false;
-    float stepCount = 0.0f;
-    for (; 
-         ((P.x * stepDir) <= end) && (stepCount < maxSteps) &&
-         !intersect &&
-          (sceneZMax != 0); 
-          P+= dP, Q.z += dQ.z, k += dk, pqk+=dPQK,stepCount+=1.0f) {
-         
-        rayZMin = rayZMax;
-        rayZMax = (dPQK.z * 0.5 + pqk.z) / (dPQK.w * 0.5 + pqk.w);
-        //prevZMaxEstimate = rayZMax;
-        if (rayZMax > rayZMin) { 
-           float t = rayZMin; rayZMin = rayZMax; rayZMax = t;
-        }
- 
-        hitPixel = permute ? P.yx : P.xy;
-        //hitPixel=P;
-
-        hitPixel/=csZBufferSize;
-        //hitPixel.y=1-hitPixel.y;
-        if(hitPixel.x>=1.0||hitPixel.y>=1.0||hitPixel.x<=0.0||hitPixel.y<=0.0) return false;
-        // You may need hitPixel.y = csZBufferSize.y - hitPixel.y; here if your vertical axis
-        // is different than ours in screen space
-        //sceneZMax=-LinearizeDepth(texture2D(sceneDepth,hitPixel).x)*far;
-        intersect=rayIntersectsDepthBF(rayZMin,rayZMax,hitPixel,zThickness);
-        //sceneZMax = texelFetch(csZBuffer, int2(hitPixel), 0);
-    }
-
-
-    //intersect= rayZMax >= sceneZMax && rayZMin <= sceneZMax;
-    P00=vec3(0);
-    Q.xy += dQ.xy * stepCount;
-    vec2 oldP=P;
-    P00=vec3(abs(P-oldP),0);
-    if(intersect&&stride>=1.8f)
-    {
-                    //pqk -= dPQK;
-                    P-= dP, Q.z -= dQ.z, k -= dk;
-                    //dPQK /= stride;
-                    dP/= stride, dQ.z/= stride, dk/= stride;
-                    
-                    float originalStride = stride * 0.5;
-                    float newStride = originalStride;
-                    
-                    rayZMax = Q.z / k;
-                    rayZMin = rayZMax;
-
-                    //bool intersect;
-                    P00=vec3(binaryIteration);
-                    //for (float iii=0;(iii<binaryIteration);iii+=1.0f) 
-                    while(originalStride<1e-6)
-                    {
-                        P+= dP*newStride, Q += dQ*newStride, k += dk*newStride;
-                        rayZMin = rayZMax;
-                        rayZMax = (-dQ.z * 0.5 + Q.z) / (-dk * 0.5 + k);
-                        if (rayZMax > rayZMin) { 
-                            float t = rayZMin; rayZMin = rayZMax; rayZMax = t;
-                        }
- 
-                        hitPixel = permute ? P.yx : P.xy;
-                        hitPixel/=csZBufferSize;
-                        originalStride *= 0.5;
-                        //if(originalStride<0.01f) break;
-                        //sceneZMax = LinearizeDepth( texture(sceneDepth, hitPixel).r) * far; 
-                        intersect=rayIntersectsDepthBF1(rayZMin,rayZMax,hitPixel,zThickness); 
-                        //newStride = !((rayZMax < sceneZMax - zThickness) || (rayZMin > sceneZMax))? -originalStride : originalStride;
-                        newStride=intersect? -originalStride: originalStride;
-                        P00=vec3(abs(P-oldP),0);
-                    }
-                    //intersect=true;
-    }
-    
-    
-
-    //P00=vec3(stepCount);
-    // Advance Q based on the number of steps
-    
-    //Q.z=pqk.z;
-    hitPoint = Q * (1.0 / k);
-    //if(stepCount>=maxSteps-80) return false;
-    //return (rayZMax > sceneZMax - zThickness)&& (rayZMin < sceneZMax);
-    return intersect;
-
-}
-
-
-
-vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
-{
-
-    //float tempRoughness=roughness;
-    vec3 vsPosition=(ViewMatrix*vec4(wsPosition,1.0f)).xyz;
-    vec3 vsNormal=(ViewMatrix*vec4(wsNormal,0)).xyz;
-    vec3 vsReflectionVector=normalize(reflect(vsPosition,vsNormal));
-    vec3 wsReflectionVector=normalize(reflect(wsPosition,wsNormal));
-    
-
-    vec4 reflectedColor = vec4(0.0);
-    //vec2 pixelsize = 1.0/vec2(screenWidth, screenHeight);
-
-
-    //vec4 csPosition = ProjectionMatrix * vec4(vsPosition, 1.0f);
-    //vec3 ndcsPosition = csPosition.xyz / csPosition.w;
-    //vec3 ssPosition = 0.5 * ndcsPosition.xyz + 0.5;
-
-    vec2 hitPixel;
-    vec3 hitPoint;
-    float stepCount=0;
-    vec3 test=vec3(0);
-    //return vec4(vsPosition.xy,0,1);
-    //csReflectionVector=normalize(csReflectionVector-csPosition);
-    uint numSamples=uint(1);
-    vec4 ssrcolor=vec4(0,0,0,1);
-    vec4 ssrcolor1=vec4(0,0,0,1);
-    float samplenum=numSamples;
-    float coneTangent = mix(0.0, roughness*0.6, pow(dot(normalize(wsNormal),normalize(-viewDir)), 1.5) * sqrt(roughness));
-    float flag=0;
-    for(uint i=uint(1);i<=numSamples;i++)
-    {
-        float scale=30;
-        uint numss=uint(3)*numSamples;
-        float _random1=rand(TexCoords);
-        float _random2=rand(TexCoords-0.0301f);
-        int index1=int(_random1*100);
-        int index2=int(_random2*100);
-        float sampleBias=0;
-        vec2 jitter=vec2(mix(haltonNum[index1%99],1.0,sampleBias),haltonNum[index2%99]);
-        //vec2 jitter=texture(blueNoise,vec2(TexCoords.x+_random1,TexCoords+_random2)).xy;
-        //vec2 jitter=vec2(_random1,_random2);
-
-        vec4 H=TangentToWorld(normalize(vsNormal), ImportanceSampleGGX(jitter, roughness));
-        H.xyz=normalize(H.xyz);
-        vec3 dir=normalize(reflect(normalize(vsPosition),H.xyz));
-        float ii=2;
-        //if(dot(dir,vsNormal)<=0)
-        //{
-            //samplenum--;
-        //    continue;
-        //}
-        flag=0;
-        while(dot(dir,vsNormal)<=0)
-        {
-            _random1=rand(TexCoords*_random1);
-            _random2=rand(TexCoords*_random2-0.0301f*ii);
-            int num1=int(_random1*100);
-            int num2=int(_random2*100);
-            jitter=vec2(haltonNum[int(num1%99)],haltonNum[int(num2%99)]);
-            //jitter=vec2(_random1,_random2)*2-1;
-
-            H=TangentToWorld(normalize(vsNormal), ImportanceSampleGGX(jitter, roughness));
-            H.xyz=normalize(H.xyz);
-            dir=normalize(reflect(normalize(vsPosition),H.xyz));
-            ii++;
-            if(ii>=10) {flag=1;break;}
-        }
-        if(flag==1) 
-        {
-            //ssrcolor=vec4(1,0,0,1);
-            return vec4(0);
-        }
-        
-
-        //float new_stride=roughness>=0.2f?inputStride:inputStride+roughness*3;
-        float new_stride=inputStride;
-        bool isHit=traceScreenSpaceRay1(vsPosition.xyz,
-            dir,
-            ProjectionMatrix,
-            sceneDepth,
-            vec2(screenWidth,screenHeight),
-            0.005,
-            near,
-            new_stride,
-            1.05,
-            450,
-            150.0f,
-            hitPixel,
-            hitPoint,
-            test);
-    
-
-        vec3 refColor=vec3(0);
-        
-    //hitPixel/=vec2(screenWidth,screenHeight);
-        if(isHit)
-        {
-            //return vec4(test,1);
-       //refColor=texture2D(gAlbedoSpec,hitPixel).rgb;
-        //refColor=vec3(P00,1);
-        //refColor=vec3(test);
-        //refColor=vec3(vec2(gl_FragCoord)/vec2(screenWidth,screenHeight),0);
-        //vec4 hitPoint_WS=vec4(hitPoint,1)*inverseViewMatrix;
-            vec4 hitPoint_WS=inverse(ViewMatrix)*vec4(hitPoint,1);
-            vec4 hitPoint_VS=preViewMatrix*hitPoint_WS;
-            vec4 hitPoint_CS=preProjectionMatrix*hitPoint_VS;
-            vec2 prevUV=0.5*(hitPoint_CS.xy/hitPoint_CS.w)+0.5;
-            //refColor=texture2D(prevFrame1,prevUV).xyz;
-            float pdf=0;
-            float IL=0;     
-        
-            
-            float BRDF=SsrBRDF(viewDir,(inverse(ViewMatrix)*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
-            pdf=max(1e-5,pdf);
-            //if(pdf<=0) 
-            //{
-                //samplenum--;
-            //    continue;
-            //}
-            float weightSum=0;
-            vec3 neighcolorSum=vec3(0);
-            float ISpdf=BRDF/pdf;
-            //weightSum+=ISpdf;
-            //ssrcolor1+=vec4(ISpdf*refColor,0);
-            float _random3=rand(TexCoords+0.201f);
-            float _random4=rand(TexCoords+0.501f);
-            int num3=int(_random3*99);
-            int num4=int(_random4*99);
-            vec2 jitter1=vec2(haltonNum[int(num3%95)],haltonNum[int(num4%95)])*2-1;
-            //vec2 jitter1=vec2(_random3,_random4)*2-1;
-            mat2x2 offsetRotationMatrix = mat2x2(jitter1.x, jitter1.y, -jitter1.y, jitter1.x);
-
-            for(float j=0;j<resolve ;j++)
-            {
-                vec2 offsetUV=offset[int(j)]*(1.0f/vec2(screenWidth,screenHeight));
-                offsetUV=offsetRotationMatrix*offsetUV;
-                vec2 neighbourUV=prevUV+offsetUV;
-                float neightbourDepth=texture2D(sceneDepth,neighbourUV).x;
-                vec4 neighbourHit=inverse(preProjectionMatrix)*vec4((neighbourUV*2-1),neightbourDepth*2-1,1);
-                neighbourHit.xyz/=neighbourHit.w;
-                neighbourHit=inverse(preViewMatrix)*vec4(neighbourHit.xyz,1);
-
-                float neighbourPDF=1;
-                float sign=1;
-
-                //if(dot(wsNormal,normalize(neighbourHit.xyz-wsPosition.xyz))<0) 
-                {
-                    //continue;
-                }
-                float neighbourBRDF=SsrBRDF(viewDir,(neighbourHit.xyz-wsPosition.xyz),wsNormal,roughness,specStrength,neighbourPDF,IL);
-                if(neighbourPDF<=0) continue;
-                float intersectionCircleRadius = coneTangent * length(neighbourUV - prevUV);
-                float mip = clamp(log2(intersectionCircleRadius * max(screenWidth, screenHeight)), 0.0, 3.0);
-                //mip=0;
-                if(neighbourUV.x>1.0||neighbourUV.y>1.0||neighbourUV.x<0||neighbourUV.y<0)
-                {
-                    //neighcolorSum+=vec3(1);
-                    continue;
-                }
-                vec3 neightbourColor=texture2D(prevFrame1,neighbourUV,0).xyz;
-                neightbourColor.rgb/=1+Luminance(neightbourColor.rgb);
-                //if(neightbourColor!=neightbourColor) return vec4(1,0,0,1);
-                //if(neightbourColor.x>1e30) neightbourColor=vec3(1,0,0);
-
-                //if(neightbourColor.x<=0) neightbourColor=
-                float neighbourISPdf=BRDF/max(1e-5,neighbourPDF);
-                neighcolorSum+=neightbourColor*neighbourISPdf;
-                //neighcolorSum+=vec3(neighbourISPdf);
-                weightSum+=neighbourISPdf;
-            }
-            float NdotV=max(dot(normalize(wsNormal),normalize(viewDir)),1e-5);
-            vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
-            //vec3 FG=texture2D(BRDFLut,vec2(0.5f,0.5f),0).xyz;
-            //vec3 FG=EnvDFGPolynomial(vec3(specStrength),pow(1-tem pRoughness,4),NdotV);
-            ssrcolor=vec4(((neighcolorSum))/max(weightSum,1e-5),1);
-            ssrcolor.xyz/=1-Luminance(ssrcolor.xyz);
-            //ssrcolor.xyz=0.5f*(ssrcolor.xyz*FG.x+vec3(FG.y));
-            
-
-        //refColor*=vec3(BRDF);
-        //refColor=vec3(hitPixel,0); 
-        }
-    }
-
-    //return vec4(ssrcolor.xyz/float(numSamples),0);
-    return vec4(ssrcolor.xyz,1);
-}
-
-vec4 SSRef(vec3 vsPosition, vec3 vsNormal, vec3 viewDir)
-{
-    vsPosition=(ViewMatrix*vec4(vsPosition,1.0f)).xyz;
-    vsNormal=(ViewMatrix*vec4(vsNormal,0)).xyz;
-    vec3 vsReflectionVector=normalize(reflect(vsPosition,vsNormal));
-    
-
-    vec4 reflectedColor = vec4(0.0);
-    vec2 pixelsize = 1.0/vec2(screenWidth, screenHeight);
-
-
-    vec4 csPosition = ProjectionMatrix * vec4(vsPosition, 1.0f);
-    //return vec4(csPosition.xyz,1);
-    vec3 ndcsPosition = csPosition.xyz / csPosition.w;
-    //return vec4(ndcsPosition,1);
-    //return vec4(ndcsPosition,1);
-    vec3 ssPosition = 0.5 * ndcsPosition.xyz + 0.5;
-
-    vsReflectionVector += vsPosition;
-    vec4 csReflectionVector = ProjectionMatrix * vec4(vsReflectionVector, 1.0f);
-    //return vec4(vec3(csReflectionVector.z/csReflectionVector.w),1);
-    vec3 ndcsReflectionVector = csReflectionVector.xyz / csReflectionVector.w;
-    //return vec4(csReflectionVector.xyz,1);
-    vec3 ssReflectionVector = ndcsReflectionVector*0.5+0.5;
-    return vec4(ssReflectionVector.xy,0,1);
-    ssReflectionVector = normalize(ssReflectionVector - ssPosition);
-    //csReflectionVector=normalize(csReflectionVector-csPosition);
-
-
-    vec3 lastSamplePosition;
-    vec3 currentSamplePosition;
-    float initalStep;
-    float pixelStepSize=2;
-    float sampleCount=300;
-    float count=0;
-
-    initalStep=1.0f/screenWidth;
-    float inverse;
-    //ssReflectionVector*=initalStep;
-    if(abs(ssReflectionVector.x)>abs(ssReflectionVector.y))
-    {
-        inverse=abs(1.0f/ssReflectionVector.x);
-    }
-    else
-    {
-        inverse=abs(1.0f/ssReflectionVector.y);
-    }
-    //ssReflectionVector*=1.0f*inverse/screenWidth*2;
-    ssReflectionVector*=1.0f/length(ssReflectionVector.xy)/screenWidth*2;
-
-    /*
-    float temp;
-    float portion=ssReflectionVector.x/ssReflectionVector.y;
-    if(ssReflectionVector.x>ssReflectionVector.y)
-    {
-        temp=ssReflectionVector.x;
-        ssReflectionVector.x=1.0f/screenWidth;
-        ssReflectionVector.y=(1.0f/screenWidth)*(1.0f/portion)*(screenHeight/screenWidth);
-        ssReflectionVector.z*=(1/screenWidth)/temp;
-    }else
-    {
-        temp=ssReflectionVector.y;
-        ssReflectionVector.y=1.0f/screenHeight;
-        ssReflectionVector.x=1.0f/screenHeight*portion*screenWidth/screenHeight;
-        ssReflectionVector.z*=(1.0f/screenHeight)/temp;
-    }
-    */
-
-    lastSamplePosition = ssPosition+ ssReflectionVector*rand(TexCoords.xy);
-    currentSamplePosition = lastSamplePosition + ssReflectionVector;
-
-    //return vec4(currentSamplePosition,1);
-    float sampledDepth;
-    float currentDepth;
-    while(count<sampleCount)
-    {
-        if(currentSamplePosition.x<0.0||currentSamplePosition.x>1.0||
-           currentSamplePosition.y<0.0||currentSamplePosition.y>1.0)
-        {
-            break;
-        }
-
-        vec2 samplingPosition=currentSamplePosition.xy;
-        sampledDepth=LinearizeDepth(texture(sceneDepth,samplingPosition).r);
-        currentDepth=LinearizeDepth(currentSamplePosition.z);
-        //return vec4(ssPosition.zzz,1);
-
-
-
-        if(currentDepth>sampledDepth)
-        {
-            float delta = abs(currentDepth - sampledDepth);
-            if(delta <= 0.0005f)
-            {
-                float f = currentDepth;
-                float blurSize = 30 * f;
-                return vec4(samplingPosition,1,1); 
-                reflectedColor = vec4(texture(gAlbedoSpec, vec2(samplingPosition.x-0.5*ssReflectionVector.x, samplingPosition.y-0.5*ssReflectionVector.y)).rgb,1.0f);
-                //reflectedColor=vec4(1.0f);
-
-                //for(float i= - blurSize/2.0; i < blurSize/2.0; i+= 1.0)
-                //{
-                //    reflectedColor += vec4(texture(gAlbedoSpec, vec2(samplingPosition.x, samplingPosition.y + i * pixelsize.y)).rgb);
-                //}
-                    
-                //reflectedColor /= blurSize;
-                break;  
-            }
-        }        
-        else
-        {
-            // Step ray
-            lastSamplePosition = currentSamplePosition;
-            currentSamplePosition = lastSamplePosition + ssReflectionVector * pixelStepSize;
-            //currentSamplePosition.xy = lastSamplePosition.xy + ssReflectionVector.xy*pixelStepSize;
-            //currentSamplePosition.z = lastSamplePosition.z + 1/currentDepth * pixelStepSize*initalStep;
-        }
-        
-        count+=1;
-    }
-    float cou=count;
-    float scou=sampleCount;
-    //return vec4(csReflectionVector.xyz,1.0f);
-    //return vec4(TexCoords.x,TexCoords.y,vsPosition.z,1.0f);
-    return reflectedColor;
-}
 
 
 
@@ -871,7 +374,8 @@ void main()
     //ProjectionMatrix[2][0]=haltonNum[int(rand1*99)%99]*2;
     //ProjectionMatrix[2][1]=haltonNum[int(rand2*99)%99]*2;
 
-    vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    //vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    vec3 FragPos = WorldPosFromDepth();
     vec3 Normal = texture(gNormal, TexCoords).rgb;
     float Gloss=texture(gNormal, TexCoords).a;
     //tempRoughness=Gloss;
@@ -908,26 +412,5 @@ void main()
     //if(Gloss<0.4f)
         //FragColor=SSR(FragPos,Normal, viewDir);
     if(Diffuse.x>=1.0f) FragColor=vec4(3,3,3,1);
-    if(frameIndex>2)
-    {
-        //FragColor+=SSRef1(FragPos,Normal,viewDir,Gloss,Specular,Diffuse);
-    }
-    
-        //FragColor=vec4(Normal,1.0f);
-    //if(flagShadowMap)FragColor = vec4((shadow)*lighting, 1.0f);
-    //else 
-    //FragColor = vec4(lighting, 1.0f);
-
-    //FragColor = vec4(vec3(Gloss), 1.0);
-    //FragColor = vec4(BRDF,BRDF,BRDF, 1.0f);
-    //FragColor=vec4(Specular,Specular,Specular,1.0f);
-    //FragColor=vec4(Normal,1.0f);
-    //FragColor=vec4(Gloss,Gloss,Gloss,1.0f);
-    //FragColor=vec4(fragPosLightSpace);
-    //FragColor=vec4(vec3(texture(gAlbedoSpec, TexCoords).rgb),1.0f);
-    //FragColor = vec4(lighting, 1.0);
-    //FragColor=texture(shadowMap,TexCoords);
-    //FragColor=vec4(vec3(texture(gNormal, TexCoords).a),1.0f);
-    //FragColor=vec4(gl_FragCoord.z);
 }
 
