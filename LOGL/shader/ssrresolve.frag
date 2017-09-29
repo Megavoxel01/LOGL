@@ -4,7 +4,7 @@ out vec4 FragColor;
 in vec2 TexCoords;
 
 
-uniform sampler2D gPosition;
+uniform sampler2D gSpecular;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D sceneDepth;
@@ -55,6 +55,7 @@ const float near=0.01f;
 const float far=100.0f;
 //vec4 reflectionV;
 #define PI 3.1415926535f
+#define INF 100000.0
 
 const vec2 offset[28]=vec2[](
 vec2(0, 0),
@@ -142,7 +143,7 @@ vec3 ViewPosFromDepth(){
     return viewSpacePosition.xyz;
 }
 
-float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float specStrength,out float PDF,out float IL)
+vec3 SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 specStrength)
 {
         lightDir=normalize(lightDir);
         viewDir=normalize(viewDir);
@@ -169,8 +170,8 @@ float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float s
         float specular=D;
 
         
-        float F0=specStrength;
-        float F = F0 + (1.0f-F0)*pow(1.0f-LdotH,5);
+        vec3 F0=specStrength;
+        vec3 F = F0 + (vec3(1.0f)-F0)*pow(1.0f-LdotH,5);
 
 
 
@@ -179,11 +180,7 @@ float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float s
         float Lambda_GGXL = NdotV*sqrt((-NdotL*alpha+NdotL)*NdotL+alpha);
 
 
-
-        float pdfD=alphaSqr/(PI*denom * denom);
-        PDF=pdfD*NdotH/(4*VdotH);
-        IL=NdotL;
-        return D*F/(4*NdotV);
+        return F*vec3(D*Lambda_GGXV*Lambda_GGXL/(4*NdotV));
 }
 
 float distanceSquared(vec2 a,vec2 b) {
@@ -235,7 +232,7 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
 }
 
 
-vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
+vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 specStrength,vec3 Diffuse)
 {
     float radius;
     vec3 debug=vec3(0);
@@ -259,9 +256,9 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
     vec4 ssrcolor=vec4(0,0,0,1);
     vec4 ssrcolor1=vec4(0,0,0,1);
     float samplenum=numSamples;
-    float coneTangent = mix(0.0, roughness*(1.0-sampleBias), pow(dot(normalize(wsNormal),normalize(viewDir)), 1.5) * sqrt(roughness));
+    //float coneTangent = mix(0.0, roughness*(1.0-sampleBias), pow(dot(normalize(wsNormal),normalize(viewDir)), 1.5) * sqrt(roughness));
     //radius=coneTangent;
-    //float coneTangent=mix(0.0f, sqrt(roughness), mix(0.0f,1.0f,2.0f*dot(normalize(wsNormal),normalize(-viewDir))) );
+    float coneTangent=mix(clamp(0.0f, 1.0f, 0.2f*dot(normalize(wsNormal),normalize(-viewDir))), 0.4f, sqrt(roughness))*0.01f;
     float flag=0;
 
     vec3 refColor=vec3(0);
@@ -272,7 +269,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             
     float BRDF=0;//texture(ssrHitpoint,TexCoords).w;
 
-    float weightSum=0;
+    vec3 weightSum=vec3(0);
     vec3 neighcolorSum=vec3(0);
     float _random3=rand(TexCoords+0.201f);
     float _random4=rand(TexCoords+0.501f);
@@ -291,77 +288,57 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             emmiFlag=false;
             vec2 offsetUV=offset[(int(jitter1.x*7)*4+int(j))%28];
             offsetUV+=ivec2(jitter1);
-            offsetUV.x/=screenWidth;
-            offsetUV.y/=screenHeight;
+            offsetUV.x/=screenWidth*1000;
+            offsetUV.y/=screenHeight*1000;
 
-            //offsetUV=offsetRotationMatrix*offsetUV;
-
-            //debug=vec3(haltonNum[num3*int(k+1)%97]);
-            //debug=vec3(offsetUV,0)*100;
             vec2 neighbourUV=TexCoords+offsetUV;
             float neighbourPDF=1;
             float sign=1;
             //vec3 neighbourHitPoint=texture(ssrHitpoint,neighbourUV).xyz;
             //if(abs(neighbourHitPoint.z-currHitPoint.z)>75.0f) continue;
             neighbourPDF=texture(ssrHitpoint,neighbourUV).w;
+            if(neighbourPDF<0) continue;
 
             //float neighbourBRDF=texture(ssrHitpoint,neighbourUV).w;
             vec4 hitPoint_WS=vec4(texture(ssrHitpoint,neighbourUV).xyz,1);
             vec4 hitPoint_VS=preViewMatrix*hitPoint_WS;
             vec4 hitPoint_CS=preProjectionMatrix*hitPoint_VS;
-            vec2 prevUV=0.5f*(hitPoint_CS.xy/hitPoint_CS.w)+0.5f;
+            vec2 prevUV=0.5f*(hitPoint_CS.xy/max(hitPoint_CS.w, 1e-5))+0.5f;
             if(hitPoint_WS.z<-60000) prevUV=vec2(-1,-1);
             //return texelFetch(currFrame,ivec2(neighbourHitUV*size),0);
             if(prevUV.x>=1.0||prevUV.y>=1.0||prevUV.x<=0.0||prevUV.y<=0.0)
             {
                 //neightbourColor=vec3(0);
-                emmiFlag=true;
-                //continue;
+                //emmiFlag=true;
+                continue;
             }
-            float neighbourBRDF=SsrBRDF(viewDir,hitPoint_WS.xyz - wsPosition ,wsNormal,roughness,specStrength,pdf,IL);
+            vec3 neighbourBRDF=SsrBRDF(viewDir,hitPoint_WS.xyz - wsPosition ,wsNormal,roughness,specStrength);
             //return vec4(prevUV,1,1);
             //return vec4(vec3(neighbourBRDF),1);
             float intersectionCircleRadius = coneTangent * length(prevUV - TexCoords);
             radius=log2(intersectionCircleRadius * max(screenWidth,screenHeight));
             radius/=100;
-            float mip = clamp(log2(intersectionCircleRadius * max(screenWidth,screenHeight)), 0.0, 8.0);
+            float mip = clamp(log2(intersectionCircleRadius * max(screenWidth,screenHeight)), 0.0, 6.0);
             //mip=0;
-            //if(neighbourUV.x>=1.0||neighbourUV.y>=1.0||neighbourUV.x<=0||neighbourUV.y<=0)
-            //{
-                //continue;
-            //}
+            if(neighbourUV.x>=1.0||neighbourUV.y>=1.0||neighbourUV.x<=0||neighbourUV.y<=0)
+            {
+                continue;
+            }
             vec2 neighbourHitUV=prevUV;
             debug=vec3(neighbourHitUV,0);
 
             //debug=vec3((neighbourUV-TexCoords),0);
             vec2 size=vec2(textureSize(currFrame,0));
             neightbourColor=textureLod(currFrame,neighbourHitUV,mip).xyz;
-            //neightbourColor=texelFetch(currFrame,ivec2(neighbourHitUV*size),0).xyz;
-            vec4 emmisive=texelFetch(ssrHitpixel,ivec2(neighbourUV*size),0);
-            //return emmisive;
-            if(flagEmmisive&&emmiFlag&&emmisive.x>=1.0f) 
-            {
-                neighbourBRDF=emmisive.w;
-                neighbourPDF=emmisive.z;
-                neightbourColor=vec3(1);
-            }
-            else if(emmiFlag)
-            {
-                continue;
-            }
-            //vec3 neightbourColor=vec3(texture(ssrHitpixel,TexCoords).xy,1);
+
             neightbourColor.rgb/=1+Luminance(neightbourColor.rgb);
-            float neighbourISPdf=neighbourBRDF/max(1e-5,neighbourPDF);
-            neighcolorSum+=neightbourColor*neighbourISPdf;
-            //neighcolorSum+=vec3(neighbourISPdf);
+            //return vec4(neightbourColor, 1);
+            vec3 neighbourISPdf=neighbourBRDF/max(1e-8,neighbourPDF);
+            neighcolorSum+=min(neightbourColor*neighbourISPdf, INF);
             weightSum+=neighbourISPdf;
         }
     }
-    //float NdotV=max(dot(normalize(wsNormal),normalize(viewDir)),1e-5);
-    //vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
-            //vec3 FG=texture2D(BRDFLut,vec2(0.5f,0.5f),0).xyz;
-            //vec3 FG=EnvDFGPolynomial(vec3(specStrength),pow(1-tem pRoughness,4),NdotV);
-    ssrcolor=vec4(neighcolorSum/max(weightSum,1e-5),1);
+    ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-8)),1);
     if(ssrcolor.x<=0)
     //if(false)
     {
@@ -399,14 +376,14 @@ void main()
 {             
 
     // ALL IN WORLD SPACE!!!
-    //vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    //vec3 FragPos = texture(gSpecular, TexCoords).rgb;
     vec3 FragPos = WorldPosFromDepth();
     vec3 Normal = texture(gNormal, TexCoords).rgb;
     float Gloss=texture(gNormal, TexCoords).a;
     //tempRoughness=Gloss;
     vec3 Diffuse = texture(gAlbedoSpec, TexCoords).rgb;
     //Diffuse=vec3(1,0,0);
-    float Specular = texture(gAlbedoSpec, TexCoords).a;
+    vec3 Specular = texture(gSpecular, TexCoords).rgb;
     vec4 fragPosLightSpace=LightSpaceMatrix*vec4(FragPos,1.0f);
     vec3 lighting = vec3(0.0f);
     vec3 viewDir  = normalize(viewPos - FragPos);

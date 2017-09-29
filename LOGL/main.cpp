@@ -556,7 +556,7 @@ int main()
 
 
 	shaderLightingPass.Use();
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "gPosition"), 0);
+	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "gSpecular"), 0);
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "gNormal"), 1);
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "gAlbedoSpec"), 2);
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "shadowMap"), 3);
@@ -567,7 +567,7 @@ int main()
 
 
 	ssrTrace.Use();
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "gPosition"), 0);
+	glUniform1i(glGetUniformLocation(ssrTrace.Program, "gSpecular"), 0);
 	glUniform1i(glGetUniformLocation(ssrTrace.Program, "gNormal"), 1);
 	glUniform1i(glGetUniformLocation(ssrTrace.Program, "gAlbedoSpec"), 2);
 	glUniform1i(glGetUniformLocation(ssrTrace.Program, "shadowMap"), 3);
@@ -583,7 +583,7 @@ int main()
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	emmisiveTrace.Use();
-	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gPosition"), 0);
+	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gSpecular"), 0);
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gNormal"), 1);
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gAlbedoSpec"), 2);
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "shadowMap"), 3);
@@ -594,7 +594,7 @@ int main()
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "ePosition"), 8);
 
 	ssrResolve.Use();
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "gPosition"), 0);
+	glUniform1i(glGetUniformLocation(ssrResolve.Program, "gSpecular"), 0);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "gNormal"), 1);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "gAlbedoSpec"), 2);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "sceneDepth"), 3);
@@ -619,7 +619,7 @@ int main()
 	TAA.Use();
 	glUniform1i(glGetUniformLocation(TAA.Program, "hdrBuffer"), 0);
 	glUniform1i(glGetUniformLocation(TAA.Program, "prevBuffer"), 1);
-	glUniform1i(glGetUniformLocation(TAA.Program, "gPosition"), 2);
+	glUniform1i(glGetUniformLocation(TAA.Program, "gSpecular"), 2);
 	glUniform1i(glGetUniformLocation(TAA.Program, "sceneDepth"), 3);
 	glUniform1i(glGetUniformLocation(TAA.Program, "gNormal"), 4);
 	glUniform1i(glGetUniformLocation(TAA.Program, "BRDFLut"), 5);
@@ -740,8 +740,8 @@ int main()
 	gBuffer.Bind();
 
 	// Gbuffer:Position
-	TextureMap gPosition(screenWidth, screenHeight, GL_RGB32F, GL_RGB, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	gBuffer.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition.textureID);
+	TextureMap gSpecular(screenWidth, screenHeight, GL_RGB32F, GL_RGB, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	gBuffer.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gSpecular.textureID);
 	// Gbuffer:Normal+Roughness
 	TextureMap gNormal(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	gBuffer.AttachTexture(1, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gNormal.textureID);
@@ -1137,7 +1137,7 @@ int main()
 
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
+		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE2);
@@ -1208,7 +1208,7 @@ int main()
 		//}
 		glUniform3fv(glGetUniformLocation(ssrTrace.Program, "viewPos"), 1, &camera.Position[0]);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
+		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE2);
@@ -1283,7 +1283,7 @@ int main()
 		glUniform3fv(glGetUniformLocation(emmisiveTrace.Program, "viewPos"), 1, &camera.Position[0]);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
+		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE2);
@@ -1355,7 +1355,7 @@ int main()
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 		//glUniform3fv(glGetUniformLocation(ssrResolve.Program, "viewPos"), 1, &camera.Position[0]);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
+		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
 		glActiveTexture(GL_TEXTURE2);
@@ -1446,7 +1446,7 @@ int main()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
+		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
 		glActiveTexture(GL_TEXTURE4);
@@ -1458,6 +1458,7 @@ int main()
 		TAA.SetUniform("preProjectionMatrix", previousProjection);
 		TAA.SetUniform("preViewMatrix", previousView);
 		TAA.SetUniform("inverseViewMatrix", glm::inverse(view));
+		TAA.SetUniform("inverseProjectionMatrix", glm::inverse(projection));
 		TAA.SetUniform("screenWidth", (float)screenWidth);
 		TAA.SetUniform("screenHeight", (float)screenHeight);
 		TAA.SetUniform("temporal", flagTemporal);
@@ -1497,7 +1498,7 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, linearColorBuffer.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
+		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
 
 		hdr.SetUniform("hdr", flagHDR);
 		hdr.SetUniform("exposure", exposure);
@@ -1518,7 +1519,7 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, hdrColorBuffer.textureID);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, SSRHitPoint.textureID);
-		//glBindTexture(GL_TEXTURE_2D, gPosition.textureID);
+		//glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
 		//glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, numLevels - 1);

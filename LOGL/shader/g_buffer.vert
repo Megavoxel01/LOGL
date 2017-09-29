@@ -5,7 +5,7 @@ layout (location = 2) in vec2 texCoords;
 layout (location = 3) in vec3 tangent;
 layout (location = 4) in vec3 bitangent;
 
-out vec3 FragPos;
+//out vec3 FragPos;
 out vec2 TexCoords;
 out vec3 Normal;
 out mat3 TBN;
@@ -17,7 +17,7 @@ uniform mat4 projection;
 void main()
 {
     vec4 worldPos = model * vec4(position, 1.0f);
-    FragPos = worldPos.xyz; 
+    //FragPos = worldPos.xyz; 
     gl_Position = projection * view * worldPos;
     TexCoords = texCoords;
     

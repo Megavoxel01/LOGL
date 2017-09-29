@@ -4,7 +4,7 @@ in vec2 TexCoords;
 out vec4 SSRHitPoint;
 
 
-uniform sampler2D gPosition;
+uniform sampler2D gSpecular;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D shadowMap;
@@ -119,7 +119,7 @@ vec3 ViewPosFromDepth(){
     return viewSpacePosition.xyz;
 }
 
-float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float specStrength,out float PDF,out float IL)
+vec3 SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 specStrength,out float PDF,out float IL)
 {
         lightDir=normalize(lightDir);
         viewDir=normalize(viewDir);
@@ -141,13 +141,13 @@ float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float s
         float alpha = roughness*roughness;
 
         float alphaSqr = alpha*alpha;
-        float denom = NdotH * NdotH *(alphaSqr-1.0) + 1.0f;
+        float denom = NdotH * NdotH *(alpha-1.0) + 1.0f;
         float D = alphaSqr/(PI * denom * denom);
         float specular=D;
 
         
-        float F0=specStrength;
-        float F = F0 + (1.0f-F0)*pow(1.0f-LdotH,5);
+        vec3 F0=specStrength;
+        vec3 F = F0 + (vec3(1.0f)-F0)*pow(1.0f-LdotH,5);
 
 
 
@@ -157,10 +157,10 @@ float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float s
 
 
 
-        float pdfD=alphaSqr/(PI*denom * denom);
+        float pdfD=alpha/max((PI*denom * denom), 1e-6);
         PDF=pdfD*NdotH/(4*VdotH);
-        IL=NdotL;
-        return D*F/(4*NdotV);
+        //IL=NdotL;
+        return D*F*Lambda_GGXV*Lambda_GGXL/(4*NdotV);
 }
 
 
@@ -192,8 +192,8 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
     //Xi=normalize(Xi);
     float Phi = 2 * PI * Xi.x;
                  
-    float CosTheta = sqrt((1.0 - Xi.y) / (1.0 + (m2 - 1.0) * Xi.y));
-    float SinTheta = sqrt(max(1e-5, 1.0 - CosTheta * CosTheta));
+    float CosTheta = sqrt((1.0 - Xi.y) / max((1.0 + (m2 - 1.0) * Xi.y), 4e-5));
+    float SinTheta = sqrt(1.0 - CosTheta * CosTheta);
                  
     vec3 H;
     H.x = SinTheta * cos(Phi);
@@ -201,7 +201,7 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
     H.z = CosTheta;
         
     float d = (CosTheta * m2 - CosTheta) * CosTheta + 1;
-    float D = m2 / (PI * d * d);
+    float D = m2 / max((PI * d * d), 4e-5);
     float pdf = D * CosTheta;
 
     return vec4(H, pdf); 
@@ -516,14 +516,14 @@ bool traceScreenSpaceRay1(
 
 
 
-vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
+vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 specStrength,vec3 Diffuse)
 {
 
     vec3 vsPosition=(ViewMatrix*vec4(wsPosition,1.0f)).xyz;
     vec3 vsNormal=(ViewMatrix*vec4(wsNormal,0)).xyz;
     vec3 vsReflectionVector=normalize(reflect(vsPosition,vsNormal));
     //vec3 wsReflectionVector=normalize(reflect(wsPosition,wsNormal));
-    float BRDF=0;
+    vec3 BRDF=vec3(0);
     float pdf=1;
     float debug;
     vec4 hitPoint_WS=vec4(-10000);
@@ -621,6 +621,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             pdf=1;
             float IL=0;     
             BRDF=SsrBRDF(viewDir,(inverse(ViewMatrix)*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
+            pdf = H.w;
             //SSRHitPixel=vec4(vec3(-1),pdf);
             //return vec4(hitPoint_WS.xyz - wsPosition,pdf);
             return vec4(hitPoint_WS.xyz,pdf);
@@ -916,7 +917,7 @@ bool trace_ray_HIZ(
     uint camera=uint(1);
 
     float level = HIZ_START_LEVEL;
-    vec3 v_z = v/v.z;
+    vec3 v_z = v/max(v.z, 1e-8);
     vec2 hi_z_size = cell_count(level);
     vec3 ray = p;
     //P00=ray;
@@ -992,17 +993,17 @@ bool trace_ray_HIZ(
 
 }
 
-vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
+vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 specStrength,vec3 Diffuse)
 {
     if(roughness>0.7f){
-        
+        return vec4(vec3(-100000),-1);
     }
 
     vec3 vsPosition=(ViewMatrix*vec4(wsPosition,1.0f)).xyz;
     vec3 vsNormal=(ViewMatrix*vec4(wsNormal,0)).xyz;
     //vec3 vsReflectionVector=normalize(reflect(vsPosition,vsNormal));
     //vec3 wsReflectionVector=normalize(reflect(wsPosition,wsNormal));
-    float BRDF=0;
+    vec3 BRDF=vec3(0);
     float pdf=1;
     float debug;
     vec4 hitPoint_WS=vec4(-10000);
@@ -1053,7 +1054,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             H.xyz=normalize(H.xyz);
             dir=reflect(normalize(vsPosition),H.xyz);
             ii++;
-            if(ii>=4) {return vec4(vec3(-100000),pdf);}
+            if(ii>=4) {return vec4(vec3(-100000),-1);}
         }
         //dir/=abs(dir.z);
         
@@ -1096,16 +1097,17 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float 
             if(prevUV.x>=1.0||prevUV.y>=1.0||prevUV.x<=0.0||prevUV.y<=0.0)
             {
                 //SSRHitPixel=vec4(-1,-1,-1,pdf);
-                return vec4(vec3(-100000),pdf);
+                return vec4(vec3(-100000),-1);
             }
             pdf=1;
             float IL=0;     
             BRDF=SsrBRDF(viewDir,(inverseViewMatrix*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
+            pdf = H.w;
             return vec4(hitPoint_WS.xyz,pdf);
         }
     }
 
-    return vec4(vec3(-100000),pdf);
+    return vec4(vec3(-100000),-1);
 }
 
 
@@ -1115,14 +1117,14 @@ void main()
 {             
 
     // ALL IN WORLD SPACE!!!
-    //vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    //vec3 FragPos = texture(gSpecular, TexCoords).rgb;
     vec3 FragPos = WorldPosFromDepth();
     vec3 Normal = texture(gNormal, TexCoords).rgb;
     float Gloss=texture(gNormal, TexCoords).a;
     //tempRoughness=Gloss;
     vec3 Diffuse = texture(gAlbedoSpec, TexCoords).rgb;
     //Diffuse=vec3(1,0,0);
-    float Specular = texture(gAlbedoSpec, TexCoords).a;
+    vec3 Specular = texture(gSpecular, TexCoords).rgb;
     vec4 fragPosLightSpace=LightSpaceMatrix*vec4(FragPos,1.0f);
     vec3 lighting = vec3(0.0f);
     vec3 viewDir  = normalize(viewPos - FragPos);

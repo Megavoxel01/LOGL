@@ -4,7 +4,7 @@ in vec2 TexCoords;
 
 uniform sampler2D hdrBuffer;
 uniform sampler2D prevBuffer;
-uniform sampler2D gPosition;
+uniform sampler2D gSpecular;
 uniform sampler2D sceneDepth;
 uniform sampler2D gNormal;
 uniform sampler2D BRDFLut;
@@ -16,6 +16,7 @@ uniform mat4 ViewMatrix;
 uniform mat4x4 preProjectionMatrix;
 uniform mat4x4 preViewMatrix;
 uniform mat4x4 inverseViewMatrix;
+uniform mat4 inverseProjectionMatrix;
 
 uniform float screenWidth;
 uniform float screenHeight;
@@ -25,6 +26,31 @@ uniform float TAAscale;
 uniform float TAAresponse;
 
 uniform vec3 viewPos;
+
+vec3 WorldPosFromDepth(){
+    float z = texture(sceneDepth, TexCoords).r;
+    z = z * 2.0 - 1.0;
+
+    vec4 clipSpacePosition = vec4(TexCoords.xy * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
+
+    viewSpacePosition /= viewSpacePosition.w;
+
+    vec4 worldSpacePosition = inverseViewMatrix * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
+}
+
+vec3 ViewPosFromDepth(){
+    float z = texture(sceneDepth, TexCoords).r;
+    z = z * 2.0 - 1.0;
+
+    vec4 clipSpacePosition = vec4(TexCoords.xy * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
+
+    viewSpacePosition /= viewSpacePosition.w;
+    return viewSpacePosition.xyz;
+}
 
 float Luminance(vec3 rgb)
 {
@@ -96,7 +122,7 @@ float ClipHistory(vec3 cHistory, vec3 cM, vec3 cMin, vec3 cMax)
 void main()
 {             
     const float gamma = 2.2f;
-    vec4 positionWS=vec4(texture(gPosition,TexCoords).rgb,1);
+    //vec4 positionWS=vec4(texture(gSpecular,TexCoords).rgb,1);
     //if(LinearizeDepth(texture(sceneDepth,TexCoords).x)>=0.9f)
     //if(texture(sceneDepth,TexCoords).x>=0.999999f) 
     if(false)
@@ -106,7 +132,7 @@ void main()
     	return;
     }
     		
-    vec4 positionVS=preViewMatrix*positionWS;
+    vec4 positionVS=vec4(ViewPosFromDepth(), 1.0f);
     vec4 positionCS=preProjectionMatrix*positionVS;
     vec2 prevUV=0.5*(positionCS.xy/positionCS.w)+0.5;
 
@@ -231,7 +257,7 @@ void main()
 	//vec3 hdrColor;
 	//color=temporal ? vec4(mix(current,previous,TAAresponse).rgb,1) : texture(hdrBuffer, TexCoords);
 
-    vec3 FragPos = texture(gPosition, TexCoords).rgb;
+    vec3 FragPos = texture(gSpecular, TexCoords).rgb;
     vec3 Normal = texture(gNormal, TexCoords).rgb;
     vec3 viewDir  = normalize(viewPos - FragPos);
     float roughness=texture(gNormal, TexCoords).a;

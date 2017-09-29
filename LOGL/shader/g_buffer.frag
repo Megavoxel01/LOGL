@@ -1,10 +1,10 @@
 #version 330 core
-layout (location = 0) out vec3 gPosition;
+layout (location = 0) out vec3 gSpecular;
 layout (location = 1) out vec4 gNormal;
 layout (location = 2) out vec4 gAlbedoSpec;
 
 in vec2 TexCoords;
-in vec3 FragPos;
+//in vec3 FragPos;
 in vec3 Normal;
 in mat3 TBN;
 
@@ -26,7 +26,8 @@ uniform Material material;
 void main()
 {    
 
-    gPosition = FragPos;
+    //gSpecular = FragPos;
+    gSpecular = texture(material.texture_specular1, TexCoords).rgb;
     gNormal.rgb = (texture2D(material.texture_normal1, TexCoords).xyz * 2.0 - 1.0) * TBN;
     float roughness=texture(material.texture_roughness1, TexCoords).r;
     if(flagGloss)    
@@ -36,7 +37,6 @@ void main()
 
     if(roughness<=1e-5) gNormal.a=tempRoughness;
 
-    gAlbedoSpec.a = texture(material.texture_specular1, TexCoords).r;
     gAlbedoSpec.rgb = texture(material.texture_diffuse1, TexCoords).rgb;
 
     if(flagMetallic)

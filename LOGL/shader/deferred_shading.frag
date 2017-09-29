@@ -2,7 +2,7 @@
 out vec4 FragColor;
 in vec2 TexCoords;
 
-uniform sampler2D gPosition;
+uniform sampler2D gSpecular;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D shadowMap;
@@ -182,7 +182,7 @@ vec3 EnvDFGPolynomial(vec3 specularColor, float gloss, float ndotv)
 
 
 
-float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float specStrength,out float PDF,out float IL)
+vec3 SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 specStrength,out float PDF,out float IL)
 {
         lightDir=normalize(lightDir);
         viewDir=normalize(viewDir);
@@ -209,8 +209,8 @@ float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float s
         float specular=D;
 
         
-        float F0=specStrength;
-        float F = F0 + (1.0f-F0)*pow(1.0f-LdotH,5);
+        vec3 F0=specStrength;
+        vec3 F = F0 + (1.0f-F0)*pow(1.0f-LdotH,5);
 
 
 
@@ -226,7 +226,7 @@ float SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float s
         return D*F*Lambda_GGXV*Lambda_GGXL/(4*NdotV);
 }
 
-float PhysicalBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, float specStrength)
+vec3 PhysicalBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 specStrength)
 {
 
         vec3 norm=normal;
@@ -254,12 +254,9 @@ float PhysicalBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, fl
         float D = alphaSqr/(pi * denom * denom);
         float specular=D;
 
-        float F0=specStrength;
-        float F = F0 + (1.0f-F0)*pow(1.0f-LdotH,5);
+        vec3 F0=specStrength;
+        vec3 F = F0 + (vec3(1.0f)-F0)*pow(1.0f-LdotH,5);
 
-
-
-// Caution : the " NdotL *" and " NdotV *" are explicitely inversed , this is not a mistake .
         float Lambda_GGXV = NdotL*sqrt((-NdotV*alpha+NdotV)*NdotV+alpha);
         float Lambda_GGXL = NdotV*sqrt((-NdotL*alpha+NdotL)*NdotL+alpha);
         return specular*F*Lambda_GGXV*Lambda_GGXL;
@@ -374,35 +371,33 @@ void main()
     //ProjectionMatrix[2][0]=haltonNum[int(rand1*99)%99]*2;
     //ProjectionMatrix[2][1]=haltonNum[int(rand2*99)%99]*2;
 
-    //vec3 FragPos = texture(gPosition, TexCoords).rgb;
     vec3 FragPos = WorldPosFromDepth();
-    vec3 Normal = texture(gNormal, TexCoords).rgb;
+    vec3 vsFragPos = ViewPosFromDepth();
+    vec3 vsNormal = (ViewMatrix * vec4(texture(gNormal, TexCoords).rgb, 0)).xyz;
     float Gloss=texture(gNormal, TexCoords).a;
     //tempRoughness=Gloss;
     vec3 Diffuse = texture(gAlbedoSpec, TexCoords).rgb;
     //Diffuse=vec3(1,0,0);
-    float Specular = texture(gAlbedoSpec, TexCoords).a;
-    vec4 fragPosLightSpace=LightSpaceMatrix*vec4(FragPos,1.0f);
+    vec3 Specular = texture(gSpecular, TexCoords).rgb;
+    vec4 fragPosLightSpace=LightSpaceMatrix*vec4(FragPos, 1.0f);
     vec3 lighting = vec3(0.0f);
-    vec3 viewDir  = normalize(viewPos - FragPos);
+    vec3 vsViewDir  = normalize((ViewMatrix * vec4(viewPos, 1.0f)).xyz - (ViewMatrix * vec4(FragPos, 1.0f)).xyz);
     float shadow=0.0f;
     if(flagShadowMap)
-        shadow = ShadowCalculation(fragPosLightSpace, FragPos,Normal);                      
+        shadow = ShadowCalculation(fragPosLightSpace, vsFragPos,vsNormal);                      
     shadow = min(shadow, 0.75); // reduce shadow strength a little: allow some diffuse/specular light in shadowed regions
     //lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
     vec3 specular;
     vec3 diffuse;
-    float BRDF;
+    vec3 BRDF;
     for(int i = 0; i < NR_LIGHTS-14; ++i)
     {
 
-        vec3 lightDir = normalize(lights[i].Position - FragPos);
-        diffuse = max(dot(Normal, lightDir), 0.0) * Diffuse * lights[i].Color;
-        BRDF=PhysicalBRDF(lightDir,viewDir,Normal,Gloss,Specular);
+        vec3 vsLightDir = normalize((ViewMatrix * vec4(lights[i].Position, 1)).xyz - vsFragPos);
+        diffuse = max(dot(vsNormal, vsLightDir), 0.0) * Diffuse * lights[i].Color;
+        BRDF=PhysicalBRDF(vsLightDir,vsViewDir, vsNormal, Gloss, Specular);
         specular = lights[i].Color * BRDF;
-        // Attenuation
         float distance = length(lights[i].Position - FragPos);
-        //float attenuation = 1.0 / (1.0 + lights[i].Linear * distance + lights[i].Quadratic * distance * distance);
         float attenuation = 1.0 / (1.0 + distance*4);
         diffuse *= attenuation;
         //specular *= attenuation;
