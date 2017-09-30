@@ -16,9 +16,10 @@ class Shader
 {
 public:
     GLuint Program;
+	enum Type { VS, PS, GS, CS };
     // Constructor generates the shader on the fly
 
-	Shader::Shader(const GLchar* computePath) {
+	Shader::Shader(const GLchar* computePath, Type type) {
 		std::string computeCode;
 		std::ifstream computeShaderFile;
 

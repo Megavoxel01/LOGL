@@ -192,7 +192,7 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
     //Xi=normalize(Xi);
     float Phi = 2 * PI * Xi.x;
                  
-    float CosTheta = sqrt((1.0 - Xi.y) / max((1.0 + (m2 - 1.0) * Xi.y), 4e-5));
+    float CosTheta = sqrt((1.0 - Xi.y) / (1.0 + (m2 - 1.0) * Xi.y));
     float SinTheta = sqrt(1.0 - CosTheta * CosTheta);
                  
     vec3 H;
@@ -201,7 +201,7 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
     H.z = CosTheta;
         
     float d = (CosTheta * m2 - CosTheta) * CosTheta + 1;
-    float D = m2 / max((PI * d * d), 4e-5);
+    float D = m2 / max((PI * d * d), 1e-5);
     float pdf = D * CosTheta;
 
     return vec4(H, pdf); 

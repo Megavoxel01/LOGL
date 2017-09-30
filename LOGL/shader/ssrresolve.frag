@@ -288,8 +288,8 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
             emmiFlag=false;
             vec2 offsetUV=offset[(int(jitter1.x*7)*4+int(j))%28];
             offsetUV+=ivec2(jitter1);
-            offsetUV.x/=screenWidth*1000;
-            offsetUV.y/=screenHeight*1000;
+            offsetUV.x/=screenWidth;
+            offsetUV.y/=screenHeight;
 
             vec2 neighbourUV=TexCoords+offsetUV;
             float neighbourPDF=1;
@@ -333,12 +333,12 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
 
             neightbourColor.rgb/=1+Luminance(neightbourColor.rgb);
             //return vec4(neightbourColor, 1);
-            vec3 neighbourISPdf=neighbourBRDF/max(1e-8,neighbourPDF);
+            vec3 neighbourISPdf=neighbourBRDF/max(1e-7,neighbourPDF);
             neighcolorSum+=min(neightbourColor*neighbourISPdf, INF);
             weightSum+=neighbourISPdf;
         }
     }
-    ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-8)),1);
+    ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-7)),1);
     if(ssrcolor.x<=0)
     //if(false)
     {

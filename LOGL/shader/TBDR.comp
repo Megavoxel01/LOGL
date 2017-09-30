@@ -1,0 +1,59 @@
+#version 450 core
+
+float depthFloat = texture(depthTexture, vec2(texCoord)).x;
+ 
+//Atomics only works on uints
+ //Might need to change 0xffffffffu to 0xFFFFFFFF on certain hardware
+ uint depthInt = uint(depthFloat * 0xffffffffu);
+ 
+//Calculate the max depth of this work group/tile
+ atomicMin(minDepth, depthInt);
+ atomicMax(maxDepth, depthInt);
+ 
+//A barrier is required at this point since we need all the calculations to be done before we proceed
+ barrier();
+
+
+ float maxDepthZ = float(float(maxDepth) / float(0xffffffffu));
+ float minDepthZ = float(minDepth / float(0xffffffffu));
+ 
+//At this point, switch over to process the lights and create the frustum tiles
+ uint minX = MAX_WORK_GROUP_SIZE * gl_WorkGroupID.x;
+ uint minY = MAX_WORK_GROUP_SIZE * gl_WorkGroupID.y;
+ uint maxX = MAX_WORK_GROUP_SIZE * (gl_WorkGroupID.x + 1);
+ uint maxY = MAX_WORK_GROUP_SIZE * (gl_WorkGroupID.y + 1);
+ 
+//Convert these corners into NDC and then convert them to view space
+ vec4 tileCorners[4];
+ tileCorners[0] = unProject(vec4( (float(minX)/SCREEN_WIDTH) * 2.0f - 1.0f, (float(minY)/SCREEN_HEIGHT) * 2.0f - 1.0f, 1.0f, 1.0f));
+ tileCorners[1] = unProject(vec4( (float(maxX)/SCREEN_WIDTH) * 2.0f - 1.0f, (float(minY)/SCREEN_HEIGHT) * 2.0f - 1.0f, 1.0f, 1.0f));
+ tileCorners[2] = unProject(vec4( (float(maxX)/SCREEN_WIDTH) * 2.0f - 1.0f, (float(maxY)/SCREEN_HEIGHT) * 2.0f - 1.0f, 1.0f, 1.0f));
+ tileCorners[3] = unProject(vec4( (float(minX)/SCREEN_WIDTH) * 2.0f - 1.0f, (float(maxY)/SCREEN_HEIGHT) * 2.0f - 1.0f, 1.0f, 1.0f));
+ 
+//Create the frustum planes by using the cross product between these points
+ vec4 frustum[4];
+ for(int i = 0; i &amp;lt; 4; i++)
+ frustum[i] = CreatePlane(tileCorners[i],tileCorners[(i+1) &amp;amp; 3]);
+ 
+barrier(); 
+
+//Switch to processing lights
+ 
+vec3 normal = texture(normalTexture, vec2(texCoord)).xyz;
+ vec3 albedo = texture(albedoTexture, vec2(texCoord)).xyz;
+ vec3 storedViewPosition = texture(positionTexture, vec2(texCoord)).xyz;
+ 
+ vec4 color = vec4(albedo,1.0f);
+ 
+for(uint i = 0; i < pointLightCount; ++i)
+ {
+ uint lightIndex = pointLightIndex[i];
+ PointLight light = pointLights[lightIndex];
+ vec4 lightInViewPos = viewMatrix * vec4(light.position.xyz, 1.0f);
+ //Avoid coloring the background
+ if(depthFloat != 1.0f)
+     color += CalcPointLight(storedViewPosition, normal, lightInViewPos.xyz, light.radius, 0.5f, vec3(light.color.xyz));
+ }
+ 
+ barrier();
+ imageStore(finalImage, pixelPosition, color);
