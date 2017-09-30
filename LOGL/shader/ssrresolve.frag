@@ -180,7 +180,7 @@ vec3 SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 spe
         float Lambda_GGXL = NdotV*sqrt((-NdotL*alpha+NdotL)*NdotL+alpha);
 
 
-        return F*vec3(D*Lambda_GGXV*Lambda_GGXL/(4*NdotV));
+        return F*vec3(D*Lambda_GGXV*Lambda_GGXL/max((4*NdotV), 1e-7));
 }
 
 float distanceSquared(vec2 a,vec2 b) {
@@ -288,8 +288,8 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
             emmiFlag=false;
             vec2 offsetUV=offset[(int(jitter1.x*7)*4+int(j))%28];
             offsetUV+=ivec2(jitter1);
-            offsetUV.x/=screenWidth;
-            offsetUV.y/=screenHeight;
+            offsetUV.x/=screenWidth*100;
+            offsetUV.y/=screenHeight*100;
 
             vec2 neighbourUV=TexCoords+offsetUV;
             float neighbourPDF=1;
@@ -333,12 +333,13 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
 
             neightbourColor.rgb/=1+Luminance(neightbourColor.rgb);
             //return vec4(neightbourColor, 1);
-            vec3 neighbourISPdf=neighbourBRDF/max(1e-7,neighbourPDF);
+            vec3 neighbourISPdf=neighbourBRDF/max(neighbourPDF, 1e-6);
             neighcolorSum+=min(neightbourColor*neighbourISPdf, INF);
             weightSum+=neighbourISPdf;
         }
     }
-    ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-7)),1);
+    //ssrcolor = vec4(neighcolorSum*1000000000, 1);
+    ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-6)),1);
     if(ssrcolor.x<=0)
     //if(false)
     {
