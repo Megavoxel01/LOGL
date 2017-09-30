@@ -157,8 +157,8 @@ vec3 SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 spe
 
 
 
-        //float pdfD=alpha/(PI*denom * denom);
-        PDF=D*NdotH/max((4*VdotH), 1e-6);
+        float pdfD=alpha/max((PI*denom * denom), 1e-6);
+        PDF=pdfD*NdotH/(4*VdotH);
         //IL=NdotL;
         return D*F*Lambda_GGXV*Lambda_GGXL/(4*NdotV);
 }
@@ -834,8 +834,8 @@ bool trace_ray(
 }
 
 /////////////////////////////////////////
-#define MAX_ITERATIONS 41
-#define HIZ_START_LEVEL 0
+#define MAX_ITERATIONS 45
+#define HIZ_START_LEVEL 1
 #define HIZ_STOP_LEVEL 0
 #define HIZ_MAX_LEVEL 6
 vec2 cell(vec2 ray, vec2 cell_count, uint camera) {
@@ -971,10 +971,6 @@ bool trace_ray_HIZ(
         else if(ray.z < min_z)
         //else if(false) 
         {
-            if(abs(ray.z - min_z)<1e-6){
-                hitFlag=1;
-                break;
-            }
             tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
             level = min(HIZ_MAX_LEVEL, level + 2.0f);
         }
