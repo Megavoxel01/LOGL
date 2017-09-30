@@ -25,7 +25,7 @@
 
 
 
-const GLuint screenWidth = 1152, screenHeight = 660;
+const GLuint screenWidth = 1600, screenHeight = 900;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -707,13 +707,13 @@ int main()
 	std::cout << "Loading Texture Finished\n" << std::endl;
 
 
-	Model ourModel("stanford-dragon.obj");
+	Model ourModel("box.obj");
 	//Model buddha("happy-buddha-webgl-sub-surface-scattering.obj");
 	ourModel.emmisive = false;
 
 	std::vector<glm::vec3> objectPositions;
-	objectPositions.push_back(glm::vec3(-3.0, -4.2, -3.0));
-	objectPositions.push_back(glm::vec3(0.0, -4.2, -3.0));
+	objectPositions.push_back(glm::vec3(-3.0, -3.8, -3.0));
+	objectPositions.push_back(glm::vec3(0.0, -3.8, -3.0));
 	//objectPositions.push_back(glm::vec3(3.0, -4.1, -3.0));
 	//objectPositions.push_back(glm::vec3(-3.0, -4.1, 0.0));
 	//objectPositions.push_back(glm::vec3(0.0, -4.1, 0.0));
@@ -989,7 +989,7 @@ int main()
 			ourModel.Draw(shaderGeometryPass);
 		}
 		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(3.0, -4.2, -3.0));
+		model = glm::translate(model, glm::vec3(3.0, -3.8, -3.0));
 		model = glm::scale(model, glm::vec3(0.15f));
 		shaderGeometryPass.SetUniform("model", model);
 		shaderGeometryPass.SetUniform("projection", projection);
