@@ -4,7 +4,7 @@ in vec2 TexCoords;
 out vec4 SSRHitPoint;
 
 
-uniform sampler2D gPosition;
+uniform sampler2D gSpecular;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D shadowMap;
@@ -972,6 +972,9 @@ bool trace_ray_HIZ(
 
 vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, float specStrength,vec3 Diffuse)
 {
+    if(roughness > 0.7f){
+        return vec4(-1000000, -1000000, -1000000, 1);
+    }
 
     vec3 vsPosition=(ViewMatrix*vec4(wsPosition,1.0f)).xyz;
     vec3 vsNormal=(ViewMatrix*vec4(wsNormal,0)).xyz;
