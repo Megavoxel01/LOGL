@@ -150,14 +150,14 @@ vec3 SsrBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 spe
         normal=normalize(normal);
 
         vec3 norm=normal;
-        float inf=1e-10;
+        float eps=1e-10;
         float diff=max(dot(norm,lightDir),0.0);
         vec3 halfVector=normalize(lightDir+viewDir);
-        float NdotL=clamp(dot(norm,lightDir),inf,1.0);
-        float NdotV=clamp(dot(norm,viewDir),inf,1.0);
-        float NdotH=clamp(dot(norm,halfVector),inf,1.0);
-        float LdotH=clamp(dot(lightDir,halfVector),inf,1.0);
-        float VdotH=clamp(dot(viewDir,halfVector),inf,1.0);
+        float NdotL=clamp(dot(norm,lightDir),eps,1.0);
+        float NdotV=clamp(dot(norm,viewDir),eps,1.0);
+        float NdotH=clamp(dot(norm,halfVector),eps,1.0);
+        float LdotH=clamp(dot(lightDir,halfVector),eps,1.0);
+        float VdotH=clamp(dot(viewDir,halfVector),eps,1.0);
         //float roughness=(255.0f-texture(material.texture_diffuse1,TexCoords).x)/800.0f;
         //float roughness=256.0f-texture(material.texture_diffuse1,TexCoords).x;
         //float roughness=1.2f-texture(material.texture_roughness1,TexCoords).r;
