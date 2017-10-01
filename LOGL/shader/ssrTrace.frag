@@ -971,8 +971,12 @@ bool trace_ray_HIZ(
         else if(ray.z < min_z)
         //else if(false) 
         {
+            if(abs(ray.z - min_z) <= 1e-6){
+                hitFlag = 1;
+                break;
+            }
             tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
-            level = min(HIZ_MAX_LEVEL, level + 2.0f);
+            level = min(HIZ_MAX_LEVEL, level + 1.0f);
         }
 
         ray.xyz = tmp_ray.xyz;
@@ -995,7 +999,7 @@ bool trace_ray_HIZ(
 
 vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 specStrength,vec3 Diffuse)
 {
-    if(roughness>0.7f){
+    if(roughness>0.5f){
         return vec4(vec3(-100000),-1);
     }
 
@@ -1129,7 +1133,7 @@ void main()
     vec3 lighting = vec3(0.0f);
     vec3 viewDir  = normalize(viewPos - FragPos);
     SSRHitPoint=vec4(-100000);
-    if(Diffuse.x<1.0f&&Gloss<0.7f)
+    if(Diffuse.x<1.0f&&Gloss<0.5f)
     {
         if(flagHiZ){
             SSRHitPoint=SSRef2(FragPos,Normal,viewDir,Gloss,Specular,Diffuse);

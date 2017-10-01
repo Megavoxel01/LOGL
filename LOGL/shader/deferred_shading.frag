@@ -236,15 +236,6 @@ vec3 PhysicalBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec
         float NdotV=clamp(dot(norm,viewDir),0.0,1.0);
         float NdotH=clamp(dot(norm,halfVector),0.0,1.0);
         float LdotH=clamp(dot(lightDir,halfVector),0.0,1.0);
-
-        //float NdotL=saturate(dot(norm,lightDir));
-        //float NdotV=saturate(dot(norm,viewDir));
-        //float NdotH=saturate(dot(norm,halfVector));
-        //float LdotH=saturate(dot(lightDir,halfVector));
-
-        //float roughness=(255.0f-texture(material.texture_diffuse1,TexCoords).x)/800.0f;
-        //float roughness=256.0f-texture(material.texture_diffuse1,TexCoords).x;
-        //float roughness=1.2f-texture(material.texture_roughness1,TexCoords).r;
     
         float alpha = roughness*roughness;
 

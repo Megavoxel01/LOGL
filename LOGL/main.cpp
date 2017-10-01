@@ -25,7 +25,7 @@
 
 
 
-const GLuint screenWidth = 1152, screenHeight = 660;
+const GLuint screenWidth = 1600, screenHeight = 900;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -673,14 +673,22 @@ int main()
 	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("textures/Aluminum-Scuffed_metallic.png"));
 	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("textures/Aluminum-Scuffed_roughness.png"));
 	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("textures/Aluminum-Scuffed_normal.png"));*/
-	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/Aluminum-Scuffed_basecolor.png"));
-	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/Aluminum-Scuffed_metallic.png"));
-	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/Aluminum-Scuffed_metallic.png"));
+	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/number.png"));
+	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/Aluminum-Scuffed_roughness.png"));
 	std::unique_ptr<TextureMap> buddha_n_ptr(new TextureMap("./textures/Aluminum-Scuffed_normal.png"));
-	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/BLACK.png"));
-	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/LIGHTGREY.png"));
-	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/greyR.png"));
-	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/rustediron-streaks_normal.png"));
+	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/BLACK.png"));
+	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/LIGHTGREY.png"));
+	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/greyR.png"));
+	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/rustediron-streaks_normal.png"));
+	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/iron-rusted4-basecolor.png"));
+	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/iron-rusted4-metalness.png"));
+	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/iron-rusted4-roughness_1.png"));
+	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/iron-rusted4-normal.png"));
+	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
+	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
+	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
 	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
 	std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
 	glBindTexture(GL_TEXTURE_2D, planeNormal->textureID);
@@ -707,13 +715,13 @@ int main()
 	std::cout << "Loading Texture Finished\n" << std::endl;
 
 
-	Model ourModel("stanford-dragon.obj");
+	Model ourModel("box.obj");
 	//Model buddha("happy-buddha-webgl-sub-surface-scattering.obj");
 	ourModel.emmisive = false;
 
 	std::vector<glm::vec3> objectPositions;
-	objectPositions.push_back(glm::vec3(-3.0, -4.2, -3.0));
-	objectPositions.push_back(glm::vec3(0.0, -4.2, -3.0));
+	objectPositions.push_back(glm::vec3(-3.0, -3.8, -3.0));
+	objectPositions.push_back(glm::vec3(0.0, -3.8, -3.0));
 	//objectPositions.push_back(glm::vec3(3.0, -4.1, -3.0));
 	//objectPositions.push_back(glm::vec3(-3.0, -4.1, 0.0));
 	//objectPositions.push_back(glm::vec3(0.0, -4.1, 0.0));
@@ -989,7 +997,7 @@ int main()
 			ourModel.Draw(shaderGeometryPass);
 		}
 		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(3.0, -4.2, -3.0));
+		model = glm::translate(model, glm::vec3(3.0, -3.8, -3.0));
 		model = glm::scale(model, glm::vec3(0.15f));
 		shaderGeometryPass.SetUniform("model", model);
 		shaderGeometryPass.SetUniform("projection", projection);
@@ -1029,7 +1037,7 @@ int main()
 			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
 		}
-		shaderGeometryPass.BindTexture(2, planeNormal->textureID, "material.texture_normal1");
+		shaderGeometryPass.BindTexture(2, floor_n_ptr->textureID, "material.texture_normal1");
 		if (flagAniso)
 		{
 			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
