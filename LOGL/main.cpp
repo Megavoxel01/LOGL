@@ -432,7 +432,7 @@ int main()
 	Shader convolve("shader/convolve.vert", "shader/convolve.frag");
 	Shader emmisiveBuffer("shader/emmisive.vert", "shader/emmisive.frag");
 	Shader emmisiveTrace("shader/emmiTrace.vert", "shader/emmiTrace.frag");
-	//Shader TBDR("shader/TBDR.comp", Shader::Type::CS);
+	Shader TBDR("shader/TBDR.comp", Shader::Type::CS);
 
 	//ourShader.Use();
 	//glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
@@ -553,11 +553,68 @@ int main()
 	struct haltonUniform {
 		float haltonNum[200];
 	}haltonUniform;
+
+	const GLuint NR_LIGHTS = 10;
+	struct Light {
+		float position[4];
+		float color[4];
+		//float linear=0.7;
+		//float quadratic=1.8;
+	};
+
+	struct LightInfo {
+		Light light[NR_LIGHTS];
+	}lightInfo;
+
+	//struct LightIndex {
+	//	int lightIndex[NR_LIGHTS];
+	//}lightIndex;
+	//std::vector<glm::vec3> lightPositions;
+	//std::vector<glm::vec3> lightColors;
+	srand(13);
+	for (GLuint i = 0; i < NR_LIGHTS; i++)
+	{
+
+		GLfloat xPos = ((rand() % 100) / 100.0) * 6.0 - 3.0;
+		GLfloat yPos = ((rand() % 100) / 100.0) * 6.0 - 4.0;
+		GLfloat zPos = ((rand() % 100) / 100.0) * 6.0 - 3.0;
+		//lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
+		lightInfo.light[i].position[0] = xPos;
+		lightInfo.light[i].position[1] = yPos;
+		lightInfo.light[i].position[2] = zPos;
+		lightInfo.light[i].position[3] = 1;
+
+
+		GLfloat rColor = ((rand() % 100) / 200.0f) + 0.5; // Between 0.5 and 1.0
+		GLfloat gColor = ((rand() % 100) / 200.0f) + 0.5; // Between 0.5 and 1.0
+		GLfloat bColor = ((rand() % 100) / 200.0f) + 0.5; // Between 0.5 and 1.0
+		lightInfo.light[i].color[0] = rColor;
+		lightInfo.light[i].color[1] = gColor;
+		lightInfo.light[i].color[2] = bColor;
+	}
+
+	int workGroupsX = (screenWidth + (screenWidth % 16)) / 16;
+	int workGroupsY = (screenHeight + (screenHeight % 16)) / 16;
+
 	GLuint haltonSSBO = 0;
 	glGenBuffers(1, &haltonSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, haltonSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(haltonUniform), &haltonUniform, GL_DYNAMIC_COPY);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, haltonSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	GLuint lightSSBO = 0;
+	glGenBuffers(1, &lightSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(LightInfo), &lightInfo, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, lightSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	GLuint visibleLightIndexSSBO = 0;
+	glGenBuffers(1, &visibleLightIndexSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleLightIndexSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int)*workGroupsX*workGroupsY*1024, 0, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, visibleLightIndexSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	
@@ -608,12 +665,6 @@ int main()
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpixel"), 8);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "IBL"), 9);
 
-	glGenBuffers(1, &haltonSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, haltonSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(haltonUniform), &haltonUniform, GL_DYNAMIC_COPY);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, haltonSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
 	ssrCombine.Use();
 	glUniform1i(glGetUniformLocation(ssrCombine.Program, "ssrBuffer"), 0);
 	glUniform1i(glGetUniformLocation(ssrCombine.Program, "drBuffer"), 1);
@@ -641,6 +692,9 @@ int main()
 
 	convolve.Use();
 	glUniform1i(glGetUniformLocation(convolve.Program, "LastMip"), 0);
+
+	TBDR.Use();
+	glUniform1i(glGetUniformLocation(TBDR.Program, "depthMap"), 0);
 
 	//emmisiveBuffer.Use();
 	//glunform1i()
@@ -709,7 +763,7 @@ int main()
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//glBindTexture(GL_TEXTURE_2D, 0);
-	TextureMap BRDFLut(width, height, GL_RGB16F, GL_RGB, GL_UNSIGNED_BYTE, image, GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
+	TextureMap BRDFLut(width, height, GL_RGB32F, GL_RGB, GL_UNSIGNED_BYTE, image, GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
 	stbi_image_free(image);
 
 	std::cout << "Loading Texture Finished\n" << std::endl;
@@ -730,23 +784,7 @@ int main()
 	//objectPositions.push_back(glm::vec3(0.0, -4.1, 3.0));
 	//objectPositions.push_back(glm::vec3(3.0, -4.1, 3.0));
 
-	const GLuint NR_LIGHTS = 4;
-	std::vector<glm::vec3> lightPositions;
-	std::vector<glm::vec3> lightColors;
-	srand(13);
-	for (GLuint i = 0; i < NR_LIGHTS; i++)
-	{
-
-		GLfloat xPos = ((rand() % 100) / 100.0) * 6.0 - 3.0;
-		GLfloat yPos = ((rand() % 100) / 100.0) * 6.0 - 4.0;
-		GLfloat zPos = ((rand() % 100) / 100.0) * 6.0 - 3.0;
-		lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
-
-		GLfloat rColor = ((rand() % 100) / 200.0f) + 0.5; // Between 0.5 and 1.0
-		GLfloat gColor = ((rand() % 100) / 200.0f) + 0.5; // Between 0.5 and 1.0
-		GLfloat bColor = ((rand() % 100) / 200.0f) + 0.5; // Between 0.5 and 1.0
-		lightColors.push_back(glm::vec3(1, 1, 1));
-	}
+	
 	Framebuffer gBuffer;
 	gBuffer.Bind();
 
@@ -893,6 +931,18 @@ int main()
 		memcpy(haltonPointer, &haltonUniform, sizeof(haltonUniform));
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 		currentFrameIndex = fmod((currentFrameIndex + 1), 65535);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightSSBO);
+		GLvoid* lightPointer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+		memcpy(lightPointer, &lightInfo, sizeof(lightInfo));
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+		//glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleLightIndexSSBO);
+		//GLvoid* lightIndexPointer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+		//memcpy(lightIndexPointer, &lightIndex, sizeof(lightIndex));
+		//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 		GLfloat currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
@@ -1056,6 +1106,17 @@ int main()
 		//glCullFace(GL_BACK);
 
 
+		TBDR.Use();
+		TBDR.SetUniform("view", view);
+		TBDR.SetUniform("projection", projection);
+		TBDR.SetUniform("screenSize", glm::vec2(screenWidth, screenHeight));
+		TBDR.SetUniform("lightCount", (int)NR_LIGHTS);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
+		glDispatchCompute(workGroupsX, workGroupsY, 1);  
+
+
+
 		emmisiveFBO.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		emmisiveBuffer.Use();
@@ -1149,6 +1210,7 @@ int main()
 		shaderLightingPass.SetUniform("inputStride", pixelStride);
 		shaderLightingPass.SetUniform("screenWidth", (float)screenWidth);
 		shaderLightingPass.SetUniform("screenHeight", (float)screenHeight);
+		shaderLightingPass.SetUniform("numberOfTilesX", workGroupsX);
 
 
 		glActiveTexture(GL_TEXTURE0);
@@ -1168,19 +1230,24 @@ int main()
 		glActiveTexture(GL_TEXTURE7);
 		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
 
+
+
+
 		glUniformMatrix4fv(glGetUniformLocation(shaderLightingPass.Program, "LightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
 		glUniform3fv(glGetUniformLocation(shaderLightingPass.Program, "lightPos"), 1, &lightPos[0]);
 		// Also send light relevant uniforms
-		for (GLuint i = 0; i < lightPositions.size(); i++)
-		{
-			const GLfloat constant = 1.0;
-			const GLfloat linear = 0.7;
-			const GLfloat quadratic = 1.8;
-			shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Position").c_str(), &lightPositions[i][0]);
-			shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Color").c_str(), &lightColors[i][0]);
-			shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Linear").c_str(), linear);
-			shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Quadratic").c_str(), quadratic);
-		}
+	
+		glUniform3fv(glGetUniformLocation(ssrResolve.Program, "viewPos"), 1, &camera.Position[0]);
+		//for (GLuint i = 0; i < NR_LIGHTS; i++)
+		//{
+		//	const GLfloat constant = 1.0;
+		//	const GLfloat linear = 0.7;
+		//	const GLfloat quadratic = 1.8;
+		//	shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Position").c_str(), &lightInfo.light[i].position[0]);
+		//	shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Color").c_str(), &lightInfo.light[i].color[0]);
+		//	shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Linear").c_str(), linear);
+		//	shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Quadratic").c_str(), quadratic);
+		//}
 		//float _halton[200];
 		//for (int i = 0; i <= 99; i++)
 		//{

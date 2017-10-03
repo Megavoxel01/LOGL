@@ -1,4 +1,4 @@
-#version 430
+#version 450
 out vec4 FragColor;
 in vec2 TexCoords;
 
@@ -15,22 +15,33 @@ uniform float extRand1;
 uniform float resolve;
 uniform float binaryIteration;
 uniform float inputStride;
+uniform int numberOfTilesX;
 
 
 //uniform float tempRoughness;
 
 
 struct Light {
-    vec3 Position;
-    vec3 Color;
-    
-    float Linear;
-    float Quadratic;
+    vec4 Position;
+    vec4 Color;
 };
-const int NR_LIGHTS = 32;
+
+struct VisibleIndex {
+    int index;
+};
+
+const int NR_LIGHTS = 10;
+
+layout(std430, binding = 2) readonly buffer LightBuffer {
+    Light lights[];
+};
+
+layout(std430, binding = 3) readonly buffer VisibleLightIndicesBuffer {
+    VisibleIndex visibleLightIndicesBuffer[];
+};
 
 uniform float haltonNum[100];
-uniform Light lights[NR_LIGHTS];
+//uniform Light lights[NR_LIGHTS];
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 uniform mat4 LightSpaceMatrix;
@@ -361,6 +372,9 @@ void main()
     ProjectionMatrix=_ProjectionMatrix;
     //ProjectionMatrix[2][0]=haltonNum[int(rand1*99)%99]*2;
     //ProjectionMatrix[2][1]=haltonNum[int(rand2*99)%99]*2;
+    ivec2 location = ivec2(gl_FragCoord.xy);
+    ivec2 tileID = location / ivec2(16, 16);
+    uint index = tileID.y * numberOfTilesX + tileID.x;
 
     vec3 FragPos = WorldPosFromDepth();
     vec3 vsFragPos = ViewPosFromDepth();
@@ -381,20 +395,27 @@ void main()
     vec3 specular;
     vec3 diffuse;
     vec3 BRDF;
-    for(int i = 0; i < NR_LIGHTS-14; ++i)
+    uint offset = index * 1024;
+    uint i=0;
+    uint lightIndex = 0;
+    for(i=0; i<NR_LIGHTS && visibleLightIndicesBuffer[offset + i].index != -1; i++)
+    //for(int i = 0; i < NR_LIGHTS; ++i)
     {
-
-        vec3 vsLightDir = normalize((ViewMatrix * vec4(lights[i].Position, 1)).xyz - vsFragPos);
-        diffuse = max(dot(vsNormal, vsLightDir), 0.0) * Diffuse * lights[i].Color;
+        lightIndex = visibleLightIndicesBuffer[offset + i].index;
+        Light light = lights[lightIndex];
+        //Light light = lights[i];
+        vec3 vsLightDir = normalize((ViewMatrix * vec4(light.Position.xyz, 1)).xyz - vsFragPos);
+        diffuse = max(dot(vsNormal, vsLightDir), 0.0) * Diffuse * light.Color.xyz;
         BRDF=PhysicalBRDF(vsLightDir,vsViewDir, vsNormal, Gloss, Specular);
-        specular = lights[i].Color * BRDF;
-        float distance = length(lights[i].Position - FragPos);
+        specular = light.Color.xyz * BRDF;
+        float distance = length(light.Position.xyz - FragPos);
         float attenuation = 1.0 / (1.0 + distance*4);
         diffuse *= attenuation;
         //specular *= attenuation;
         lighting += diffuse + specular;
     }    
     FragColor = vec4((1.0f-shadow)*lighting, 1.0f);
+    //FragColor = vec4((vec3(i)/float(NR_LIGHTS)), 1.0f);
     //if(Gloss<0.4f)
         //FragColor=SSR(FragPos,Normal, viewDir);
     if(Diffuse.x>=1.0f) FragColor=vec4(3,3,3,1);
