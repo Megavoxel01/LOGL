@@ -62,7 +62,7 @@ void main() {
 	vec2 text = vec2(location) / screenSize;
 	float depth = texture(depthMap, text).r;
 	// Linearize the depth value from depth buffer (must do this because we created it using projection)
-	depth = (0.5 * projection[3][2]) / (depth + 0.5 * projection[2][2] - 0.5);
+	//depth = (0.5 * projection[3][2]) / (depth + 0.5 * projection[2][2] - 0.5);
 
 	// Convert depth to uint so we can do atomic min and max comparisons between the threads
 	uint depthInt = floatBitsToUint(depth);

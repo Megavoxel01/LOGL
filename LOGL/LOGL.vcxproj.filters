@@ -33,9 +33,6 @@
     <ClCompile Include="framebuffer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Application.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="TextureMap.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -52,6 +49,15 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="imgui_draw.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="HiZDepthPass.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="LightCulling.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GBufferPass.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -135,9 +141,6 @@
     <ClInclude Include="includes\LOGL\shader.h">
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
-    <ClInclude Include="includes\LOGL\Application.h">
-      <Filter>头文件\LOGL</Filter>
-    </ClInclude>
     <ClInclude Include="includes\LOGL\DeferredRenderer.h">
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
@@ -154,6 +157,18 @@
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="includes\LOGL\Utility.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPass.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="HiZDepthPass.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="LightCullingPass.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GBufferPass.h">
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
   </ItemGroup>

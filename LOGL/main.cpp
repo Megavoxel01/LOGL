@@ -16,9 +16,12 @@
 #include <model.h>
 #include <SOIL.h>
 #include <stb_image.h>
-#include "TextureMap.h"
+#include <TextureMap.h>
 #include <memory>
 #include <random>
+
+#include <HiZDepthPass.h>
+#include <LightCullingPass.h>
 
 
 
@@ -34,136 +37,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void RenderScene(Shader &shader);
 void Do_Movement();
 
-
-GLuint quadVAO = 0;
-GLuint quadVBO;
-
-GLuint bufferVAO = 0;
-GLuint bufferVBO;
-
-void RenderBufferQuad()
-{
-	if (bufferVAO == 0)
-	{
-		GLfloat quadVertices[] = {
-			// Positions        // Texture Coords
-			-1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-			1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-		};
-		// Setup plane VAO
-		glGenVertexArrays(1, &bufferVAO);
-		glGenBuffers(1, &bufferVBO);
-		glBindVertexArray(bufferVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, bufferVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-	}
-	glBindVertexArray(bufferVAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
-}
-void RenderQuad()
-{
-	if (quadVAO == 0)
-	{
-		// positions
-		/*glm::vec3 pos1(-1.0, 1.0, 0.0);
-		glm::vec3 pos2(-1.0, -1.0, 0.0);
-		glm::vec3 pos3(1.0, -1.0, 0.0);
-		glm::vec3 pos4(1.0, 1.0, 0.0);*/
-		int tile = 10;
-		int offset = 0;
-		glm::vec3 pos1(-1.0*tile, -4.0, 1.0*tile + offset);
-		glm::vec3 pos2(-1.0*tile, -4.0, -1.0*tile + offset);
-		glm::vec3 pos3(1.0*tile, -4.0, -1.0*tile + offset);
-		glm::vec3 pos4(1.0*tile, -4.0, 1.0*tile + offset);
-		// texture coordinates
-
-		glm::vec2 uv1(0.0, 1.0*tile);
-		glm::vec2 uv2(0.0, 0.0);
-		glm::vec2 uv3(1.0*tile, 0.0);
-		glm::vec2 uv4(1.0*tile, 1.0*tile);
-		// normal vector
-		glm::vec3 nm(0.0, 1.0, 0.0);
-
-		// calculate tangent/bitangent vectors of both triangles
-		glm::vec3 tangent1, bitangent1;
-		glm::vec3 tangent2, bitangent2;
-		// - triangle 1
-		glm::vec3 edge1 = pos2 - pos1;
-		glm::vec3 edge2 = pos3 - pos1;
-		glm::vec2 deltaUV1 = uv2 - uv1;
-		glm::vec2 deltaUV2 = uv3 - uv1;
-
-		GLfloat f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-		tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-		tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-		tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-		tangent1 = glm::normalize(tangent1);
-
-		bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-		bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-		bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-		bitangent1 = glm::normalize(bitangent1);
-
-		// - triangle 2
-		edge1 = pos3 - pos1;
-		edge2 = pos4 - pos1;
-		deltaUV1 = uv3 - uv1;
-		deltaUV2 = uv4 - uv1;
-
-		f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-		tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-		tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-		tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-		tangent2 = glm::normalize(tangent2);
-
-
-		bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-		bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-		bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-		bitangent2 = glm::normalize(bitangent2);
-
-
-		GLfloat quadVertices[] = {
-			// Positions            // normal         // TexCoords  // Tangent                          // Bitangent
-			pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
-			pos2.x, pos2.y, pos2.z, nm.x, nm.y, nm.z, uv2.x, uv2.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
-			pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
-
-			pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
-			pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
-			pos4.x, pos4.y, pos4.z, nm.x, nm.y, nm.z, uv4.x, uv4.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z
-		};
-		// Setup plane VAO
-		glGenVertexArrays(1, &quadVAO);
-		glGenBuffers(1, &quadVBO);
-		glBindVertexArray(quadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(3);
-
-		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(8 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(4);
-		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(11 * sizeof(GLfloat)));
-	}
-	glBindVertexArray(quadVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindVertexArray(0);
-}
 double halton(int index, int base)
 {
 	double frac = 1.0 / (double)base;
@@ -416,6 +289,9 @@ int main()
 		glm::vec3(-3.0, -4.1, -3.0),
 		glm::vec3(0.0, -4.1, -3.0)
 	};
+	
+
+
 
 	Shader simpleDepthShader("shader/shadow.vert", "shader/shadow.frag");
 	Shader shaderGeometryPass("shader/g_buffer.vert", "shader/g_buffer.frag");
@@ -428,11 +304,9 @@ int main()
 	Shader ssrCombine("shader/ssrCombine.vert", "shader/ssrCombine.frag");
 	Shader toScreen("shader/screen.vert", "shader/screen.frag");
 	Shader TAA("shader/TAA.vert", "shader/TAA.frag");
-	Shader hiZ("shader/HiZ.vert", "shader/HiZ.frag");
 	Shader convolve("shader/convolve.vert", "shader/convolve.frag");
 	Shader emmisiveBuffer("shader/emmisive.vert", "shader/emmisive.frag");
 	Shader emmisiveTrace("shader/emmiTrace.vert", "shader/emmiTrace.frag");
-	Shader TBDR("shader/TBDR.comp", Shader::Type::CS);
 
 	//ourShader.Use();
 	//glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
@@ -687,14 +561,8 @@ int main()
 	glUniform1i(glGetUniformLocation(toScreen.Program, "hdrBuffer"), 0);
 	glUniform1i(glGetUniformLocation(toScreen.Program, "sceneDepth"), 1);
 
-	hiZ.Use();
-	glUniform1i(glGetUniformLocation(hiZ.Program, "LastMip"), 0);
-
 	convolve.Use();
 	glUniform1i(glGetUniformLocation(convolve.Program, "LastMip"), 0);
-
-	TBDR.Use();
-	glUniform1i(glGetUniformLocation(TBDR.Program, "depthMap"), 0);
 
 	//emmisiveBuffer.Use();
 	//glunform1i()
@@ -830,12 +698,6 @@ int main()
 	linearFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, linearColorBuffer.textureID);
 	linearFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
 
-	Framebuffer hizFBO;
-	hizFBO.Bind();
-	hizFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
-	hizFBO.Unbind();
-
-
 	Framebuffer SSRHitpointFBO;
 	SSRHitpointFBO.Bind();
 	TextureMap SSRHitPoint(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
@@ -866,6 +728,11 @@ int main()
 	emmisiveFBO.AttachTexture(0, GL_DEPTH_COMPONENT, GL_TEXTURE_2D, emmisiveDepth.textureID);
 	emmisiveFBO.Unbind();
 
+
+	HiZDepthPass hiZDepthPass(screenWidth, screenHeight, rboDepth);
+	hiZDepthPass.init();
+
+	LightCullingPass lightCullingPass(screenWidth, screenHeight, workGroupsX, workGroupsY, rboDepth);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -1105,19 +972,13 @@ int main()
 		glEnable(GL_CULL_FACE);
 		//glCullFace(GL_BACK);
 
-
-		TBDR.Use();
-		TBDR.SetUniform("view", view);
-		TBDR.SetUniform("projection", projection);
-		TBDR.SetUniform("screenSize", glm::vec2(screenWidth, screenHeight));
-		TBDR.SetUniform("lightCount", (int)NR_LIGHTS);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
-		glDispatchCompute(workGroupsX, workGroupsY, 1);  
+		lightCullingPass.update(view, projection, NR_LIGHTS);
+		lightCullingPass.execute();
 
 
 
-		emmisiveFBO.Bind();
+
+		/*emmisiveFBO.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		emmisiveBuffer.Use();
 		model = glm::mat4();
@@ -1141,41 +1002,17 @@ int main()
 				ourModel.Draw(emmisiveBuffer);
 			}
 		}
+		*/
 
 
 
 
 
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
-		hizFBO.Bind();
-		hiZ.Use();
-		glDepthFunc(GL_ALWAYS);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
-		int numLevels = 1 + (int)floorf(log2f(fmaxf(screenWidth, screenHeight)));
-		int currentWidth = screenWidth;
-		int currentHeight = screenHeight;
-		for (int i = 1; i<numLevels; i++) {
-			hiZ.SetUniform("LastMipSize", glm::ivec2(currentWidth, currentHeight));
-			hiZ.SetUniform("level", i);
-			glm::vec2 offsets;
-			offsets.x = (currentWidth % 2 == 0 ? 1 : 2);
-			offsets.y = (currentHeight % 2 == 0 ? 1 : 2);
-			hiZ.SetUniform("offsets", offsets);
-			currentWidth /= 2;
-			currentHeight /= 2;
-			currentWidth = currentWidth > 0 ? currentWidth : 1;
-			currentHeight = currentHeight > 0 ? currentHeight : 1;
-			glViewport(0, 0, currentWidth, currentHeight);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, i - 1);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, i - 1);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID, i);
-			RenderBufferQuad();
-		}
-		numLevels = min(numLevels, 7);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, numLevels - 1);
-		glViewport(0, 0, screenWidth, screenHeight);
+
+		hiZDepthPass.update();
+		hiZDepthPass.execute();
+
 		glQueryCounter(queryID[1], GL_TIMESTAMP);
 		GLint stopTimerAvailable = 0;
 		while (!stopTimerAvailable) {

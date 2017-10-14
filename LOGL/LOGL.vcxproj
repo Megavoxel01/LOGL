@@ -73,13 +73,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Application.cpp" />
     <ClCompile Include="framebuffer.cpp" />
+    <ClCompile Include="GBufferPass.cpp" />
+    <ClCompile Include="HiZDepthPass.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="imgui_demo.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
     <ClCompile Include="imgui_impl_glfw.cpp" />
     <ClCompile Include="includes\imgui.cpp" />
+    <ClCompile Include="LightCulling.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="TextureMap.cpp" />
@@ -100,12 +102,13 @@
     <ClInclude Include="..\includes\stb_rect_pack.h" />
     <ClInclude Include="..\includes\stb_textedit.h" />
     <ClInclude Include="..\includes\stb_truetype.h" />
+    <ClInclude Include="GBufferPass.h" />
+    <ClInclude Include="HiZDepthPass.h" />
     <ClInclude Include="includes\image_DXT.h" />
     <ClInclude Include="includes\image_helper.h" />
     <ClInclude Include="includes\imconfig.h" />
     <ClInclude Include="includes\imgui.h" />
     <ClInclude Include="includes\imgui_internal.h" />
-    <ClInclude Include="includes\LOGL\Application.h" />
     <ClInclude Include="includes\LOGL\camera.h" />
     <ClInclude Include="includes\LOGL\DeferredRenderer.h" />
     <ClInclude Include="includes\LOGL\filesystem.h" />
@@ -122,6 +125,8 @@
     <ClInclude Include="includes\stb_rect_pack.h" />
     <ClInclude Include="includes\stb_textedit.h" />
     <ClInclude Include="includes\stb_truetype.h" />
+    <ClInclude Include="LightCullingPass.h" />
+    <ClInclude Include="RenderPass.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
