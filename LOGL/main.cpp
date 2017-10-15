@@ -666,8 +666,8 @@ int main()
 	//objectPositions.push_back(glm::vec3(3.0, -4.1, 3.0));
 
 	
-	Framebuffer gBuffer;
-	gBuffer.Bind();
+	//Framebuffer gBuffer;
+	//gBuffer.Bind();
 
 	TextureMap gSpecular(screenWidth, screenHeight, GL_RGB32F, GL_RGB, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	TextureMap gNormal(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
@@ -676,19 +676,11 @@ int main()
 	scene->addTextureMap("gNormal", &gNormal);	
 	scene->addTextureMap("gAlbedoSpec", &gAlbedoSpec);
 
-	gBuffer.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gSpecular.textureID);
-	gBuffer.AttachTexture(1, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gNormal.textureID);
-	gBuffer.AttachTexture(2, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gAlbedoSpec.textureID);
-	GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-	gBuffer.DrawBuffer(3, attachments);
 	err = glGetError();
 	//gbuffer depth
 
 	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	scene->addTextureMap("rboDepth", &rboDepth);
-	gBuffer.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
-	gBuffer.Unbind();
-
 
 	//shadow
 	Framebuffer depthMapFBO;
@@ -905,101 +897,10 @@ int main()
 		fov2projection[2][1] /= screenHeight * 64;
 
 
-
-		
-		
-		//glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.bufferID);
-		gBuffer.Bind();
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//previousView = view;
 		view = camera.GetViewMatrix();
-		glm::mat4 model;
-		shaderGeometryPass.Use();
-		model = glm::mat4();
-		float flagGloss = 1;
-		float flagMetallic = 0;
-		shaderGeometryPass.SetUniform("projection", projection);
-		shaderGeometryPass.SetUniform("view", view);
-		shaderGeometryPass.SetUniform("model", model);
-		shaderGeometryPass.SetUniform("flagGloss", flagGloss);
-		shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
-		//shaderGeometryPass.BindTexture(0, teath_d_ptr->textureID, "material.texture_diffuse1");
-		//shaderGeometryPass.BindTexture(1, teath_s_ptr->textureID, "material.texture_specular1");
-		//shaderGeometryPass.BindTexture(2, teath_n_ptr->textureID, "material.texture_normal1");
-		//shaderGeometryPass.BindTexture(3, teath_r_ptr->textureID, "material.texture_roughness1");
-		shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
-		shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
-		shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
-		shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
-		for (GLuint i = 0; i < objectPositions.size(); i++)
-		{
-			model = glm::mat4();
-			model = glm::translate(model, objectPositions[i]);
-			model = glm::scale(model, glm::vec3(0.15f));
-			shaderGeometryPass.SetUniform("model", model);
-			ourModel.getModel().Draw(shaderGeometryPass);
-		}
-		model = glm::mat4();
-		model = glm::translate(model, glm::vec3(3.0, -3.8, -3.0));
-		model = glm::scale(model, glm::vec3(0.15f));
-		shaderGeometryPass.SetUniform("model", model);
-		shaderGeometryPass.SetUniform("projection", projection);
-		shaderGeometryPass.SetUniform("view", view);
-		shaderGeometryPass.SetUniform("model", model);
-		shaderGeometryPass.SetUniform("flagGloss", flagGloss);
-		shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
-		//shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
-		//shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
-		//shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
-		//shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
-		ourModel.getModel().emmisive = false;
-		ourModel.getModel().Draw(shaderGeometryPass);
-		ourModel.getModel().emmisive = false;
-
-		model = glm::mat4();
-		shaderGeometryPass.SetUniform("model", model);
-		shaderGeometryPass.SetUniform("projection", projection);
-		shaderGeometryPass.SetUniform("view", view);
-		flagGloss = 0;
-		flagMetallic = 1;
-		shaderGeometryPass.SetUniform("flagGloss", flagGloss);
-		shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
-		shaderGeometryPass.SetUniform("tempRoughness", tempRoughness);
-
-
-		float aniso = 0.0f;
-		shaderGeometryPass.BindTexture(0, floor_d_ptr->textureID, "material.texture_diffuse1");
-		if (flagAniso)
-		{
-			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-		}
-		shaderGeometryPass.BindTexture(1, floor_s_ptr->textureID, "material.texture_specular1");
-		if (flagAniso)
-		{
-			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-		}
-		shaderGeometryPass.BindTexture(2, floor_n_ptr->textureID, "material.texture_normal1");
-		if (flagAniso)
-		{
-			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-		}
-		shaderGeometryPass.BindTexture(3, floor_r_ptr->textureID, "material.texture_roughness1");
-		if (flagAniso)
-		{
-			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-		}
-		//glCullFace(GL_FRONT);
-		glDisable(GL_CULL_FACE);
-		RenderQuad();
-		glEnable(GL_CULL_FACE);
-		//glCullFace(GL_BACK);
 		
-		//gBufferPass.update(view, projection, objectPositions);
-		//gBufferPass.execute();
+		gBufferPass.update(view, projection, objectPositions);
+		gBufferPass.execute();
 
 		lightCullingPass.update(view, projection, NR_LIGHTS);
 		lightCullingPass.execute();
