@@ -19,7 +19,7 @@
 #include <TextureMap.h>
 #include <memory>
 #include <random>
-
+#include <GBufferPass.h>
 #include <HiZDepthPass.h>
 #include <LightCullingPass.h>
 
@@ -205,6 +205,7 @@ GLfloat lastFrame = 0.0f;
 int main()
 {
 	int err;
+	std::shared_ptr<Scene> scene(new Scene());
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -596,23 +597,33 @@ int main()
 	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("textures/Aluminum-Scuffed_roughness.png"));
 	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("textures/Aluminum-Scuffed_normal.png"));*/
 	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/number.png"));
+	scene->addTextureMap("buddha_d_ptr", buddha_d_ptr.get());
 	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	scene->addTextureMap("buddha_s_ptr", buddha_s_ptr.get());
 	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/Aluminum-Scuffed_roughness.png"));
+	scene->addTextureMap("buddha_r_ptr", buddha_r_ptr.get());
 	std::unique_ptr<TextureMap> buddha_n_ptr(new TextureMap("./textures/Aluminum-Scuffed_normal.png"));
+	scene->addTextureMap("buddha_n_ptr", buddha_n_ptr.get());
 	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/BLACK.png"));
 	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/LIGHTGREY.png"));
 	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/greyR.png"));
 	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/rustediron-streaks_normal.png"));
-	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/iron-rusted4-basecolor.png"));
-	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/iron-rusted4-metalness.png"));
-	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/iron-rusted4-roughness_1.png"));
-	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/iron-rusted4-normal.png"));
-	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
-	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
-	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
-	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
+	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/iron-rusted4-basecolor.png"));
+	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/iron-rusted4-metalness.png"));
+	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/iron-rusted4-roughness_1.png"));
+	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/iron-rusted4-normal.png"));
+	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
+	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
+	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
 	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
 	std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
+
+	scene->addTextureMap("floor_d_ptr", floor_d_ptr.get());	
+	scene->addTextureMap("floor_s_ptr", floor_s_ptr.get());	
+	scene->addTextureMap("floor_r_ptr", floor_r_ptr.get());	
+	scene->addTextureMap("floor_n_ptr", floor_n_ptr.get());	
+	scene->addTextureMap("planeNormal", planeNormal.get());
 	glBindTexture(GL_TEXTURE_2D, planeNormal->textureID);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -637,9 +648,11 @@ int main()
 	std::cout << "Loading Texture Finished\n" << std::endl;
 
 
-	Model ourModel("box.obj");
+	//Model ourModel("box.obj");
+	RenderObject ourModel("box.obj");
+	scene->addRenderObject("ourModel", &ourModel);
 	//Model buddha("happy-buddha-webgl-sub-surface-scattering.obj");
-	ourModel.emmisive = false;
+	ourModel.getModel().emmisive = false;
 
 	std::vector<glm::vec3> objectPositions;
 	objectPositions.push_back(glm::vec3(-3.0, -3.8, -3.0));
@@ -656,14 +669,15 @@ int main()
 	Framebuffer gBuffer;
 	gBuffer.Bind();
 
-	// Gbuffer:Position
 	TextureMap gSpecular(screenWidth, screenHeight, GL_RGB32F, GL_RGB, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	gBuffer.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gSpecular.textureID);
-	// Gbuffer:Normal+Roughness
 	TextureMap gNormal(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	gBuffer.AttachTexture(1, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gNormal.textureID);
-	// Gbuffer:Albedo+Spec
 	TextureMap gAlbedoSpec(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("gSpecular", &gSpecular);	
+	scene->addTextureMap("gNormal", &gNormal);	
+	scene->addTextureMap("gAlbedoSpec", &gAlbedoSpec);
+
+	gBuffer.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gSpecular.textureID);
+	gBuffer.AttachTexture(1, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gNormal.textureID);
 	gBuffer.AttachTexture(2, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gAlbedoSpec.textureID);
 	GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 	gBuffer.DrawBuffer(3, attachments);
@@ -671,6 +685,7 @@ int main()
 	//gbuffer depth
 
 	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("rboDepth", &rboDepth);
 	gBuffer.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
 	gBuffer.Unbind();
 
@@ -679,6 +694,7 @@ int main()
 	Framebuffer depthMapFBO;
 	const GLuint shadowWidth = 1024, shadowHeight = 1024;
 	TextureMap depthMap(shadowWidth, shadowHeight, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("depthMap", &depthMap);
 	depthMapFBO.Bind();
 	depthMapFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap.textureID);
 	glDrawBuffer(GL_NONE);
@@ -690,49 +706,60 @@ int main()
 	Framebuffer hdrFBO;
 	hdrFBO.Bind();
 	TextureMap hdrColorBuffer(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("hdrColorBuffer", &hdrColorBuffer);
 	hdrFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hdrColorBuffer.textureID);
 
 	Framebuffer linearFBO;
 	linearFBO.Bind();
 	TextureMap linearColorBuffer(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	scene->addTextureMap("linearColorBuffer", &linearColorBuffer);
 	linearFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, linearColorBuffer.textureID);
 	linearFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
 
 	Framebuffer SSRHitpointFBO;
 	SSRHitpointFBO.Bind();
 	TextureMap SSRHitPoint(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("SSRHitPoint", &SSRHitPoint);
 	SSRHitpointFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPoint.textureID);
 
 	Framebuffer EmmisiveColorFBO;
 	EmmisiveColorFBO.Bind();
 	TextureMap SSRHitPixel(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("SSRHitPixel", &SSRHitPixel);
 	EmmisiveColorFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SSRHitPixel.textureID);
 	EmmisiveColorFBO.Unbind();
 
 	Framebuffer SSRColorFBO;
 	SSRColorFBO.Bind();
 	TextureMap currSSR(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	scene->addTextureMap("currSSR", &currSSR);
 	SSRColorFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currSSR.textureID);
 	SSRColorFBO.Unbind();
 
 	Framebuffer prevFrameFBO;
 	prevFrameFBO.Bind();
-	TextureMap prevColorFrame1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);	
+	TextureMap prevColorFrame1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	scene->addTextureMap("prevColorFrame1", &prevColorFrame1);
 	prevFrameFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, prevColorFrame1.textureID);
 	prevFrameFBO.Unbind();
 
 	Framebuffer emmisiveFBO;
 	emmisiveFBO.Bind();
 	TextureMap prevSSR1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("prevSSR1", &prevSSR1);
 	TextureMap emmisiveDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("emmisiveDepth", &emmisiveDepth);
 	emmisiveFBO.AttachTexture(0, GL_DEPTH_COMPONENT, GL_TEXTURE_2D, emmisiveDepth.textureID);
 	emmisiveFBO.Unbind();
 
+	GBufferPass gBufferPass(screenWidth, screenHeight, scene.get());
+	gBufferPass.init();
 
-	HiZDepthPass hiZDepthPass(screenWidth, screenHeight, rboDepth);
+	HiZDepthPass hiZDepthPass(screenWidth, screenHeight, scene.get());
 	hiZDepthPass.init();
 
-	LightCullingPass lightCullingPass(screenWidth, screenHeight, workGroupsX, workGroupsY, rboDepth);
+	LightCullingPass lightCullingPass(screenWidth, screenHeight, workGroupsX, workGroupsY, scene.get());
+	lightCullingPass.init();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -854,7 +881,7 @@ int main()
 				model1 = glm::translate(model1, objectPositions[i]);
 				model1 = glm::scale(model1, glm::vec3(0.15f));
 				simpleDepthShader.SetUniform("model", model1);
-				ourModel.Draw(simpleDepthShader);
+				ourModel.getModel().Draw(simpleDepthShader);
 			}
 			glCullFace(GL_BACK);
 			depthMapFBO.Unbind();
@@ -872,16 +899,15 @@ int main()
 		projection[2][1] /= screenHeight * 64;
 
 		fov2projection = glm::perspective(camera.Zoom * 2, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
-		fov2projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 999] * 2 - 1;
+		fov2projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 999] * 2 - 1; 
 		fov2projection[2][1] = haltonUniform.haltonNum[(int)(currentFrameIndex + 15) % 999] * 2 - 1;
 		fov2projection[2][0] /= screenWidth * 64;
 		fov2projection[2][1] /= screenHeight * 64;
 
 
 
-
-
-
+		
+		
 		//glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.bufferID);
 		gBuffer.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -911,7 +937,7 @@ int main()
 			model = glm::translate(model, objectPositions[i]);
 			model = glm::scale(model, glm::vec3(0.15f));
 			shaderGeometryPass.SetUniform("model", model);
-			ourModel.Draw(shaderGeometryPass);
+			ourModel.getModel().Draw(shaderGeometryPass);
 		}
 		model = glm::mat4();
 		model = glm::translate(model, glm::vec3(3.0, -3.8, -3.0));
@@ -926,9 +952,9 @@ int main()
 		//shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
 		//shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
 		//shaderGeometryPass.BindTexture(3, buddha_r_ptr->textureID, "material.texture_roughness1");
-		ourModel.emmisive = false;
-		ourModel.Draw(shaderGeometryPass);
-		ourModel.emmisive = false;
+		ourModel.getModel().emmisive = false;
+		ourModel.getModel().Draw(shaderGeometryPass);
+		ourModel.getModel().emmisive = false;
 
 		model = glm::mat4();
 		shaderGeometryPass.SetUniform("model", model);
@@ -971,6 +997,9 @@ int main()
 		RenderQuad();
 		glEnable(GL_CULL_FACE);
 		//glCullFace(GL_BACK);
+		
+		//gBufferPass.update(view, projection, objectPositions);
+		//gBufferPass.execute();
 
 		lightCullingPass.update(view, projection, NR_LIGHTS);
 		lightCullingPass.execute();
@@ -1168,7 +1197,7 @@ int main()
 
 
 
-
+		/*
 		EmmisiveColorFBO.Bind();
 		emmisiveTrace.Use();
 		emmisiveTrace.SetUniform("flagShadowMap", flagShadowMap);
@@ -1234,7 +1263,7 @@ int main()
 			t_emmit = (stopTime - startTime) / 1000000.0;
 		}
 
-		EmmisiveColorFBO.Unbind();
+		EmmisiveColorFBO.Unbind();*/
 		//glBindTexture(GL_TEXTURE_2D, SSRHitPixel);
 		//glGenerateMipmap(GL_TEXTURE_2D);
 		//glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
@@ -1481,7 +1510,7 @@ int main()
 			ImGui::Text(" %.1f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::Text("HiZ:  %.4f", t_hiz);
 			ImGui::Text("ssrTrace:  %.4f", t_ssrTrace);
-			ImGui::Text("emmiTrace:  %.4f", t_emmit);
+			//ImGui::Text("emmiTrace:  %.4f", t_emmit);
 			ImGui::Text("ssrResolve:  %.4f", t_ssrResolve);
 			ImGui::Text("TAA:  %.4f", t_taa);
 		}

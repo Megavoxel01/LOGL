@@ -3,7 +3,7 @@
 
 class HiZDepthPass : public RenderPass {
 public:
-	HiZDepthPass(float width, float height, const TextureMap& depth);
+	HiZDepthPass(float width, float height, Scene* scene);
 	~HiZDepthPass();
 
 	void init();
@@ -12,9 +12,10 @@ public:
 
 	
 private:
+	Scene *scene;
 	float mWidth;
 	float mHeight;
 	Shader hiZ;
 	Framebuffer hizFBO;
-	TextureMap rboDepth;
+	TextureMap* rboDepth;
 };

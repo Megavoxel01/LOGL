@@ -3,6 +3,7 @@
 #include <shader.h>
 #include <framebuffer.h>
 #include <TextureMap.h>
+#include <Scene.h>
 
 class RenderPass
 {

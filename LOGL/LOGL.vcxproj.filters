@@ -54,10 +54,10 @@
     <ClCompile Include="HiZDepthPass.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="LightCulling.cpp">
+    <ClCompile Include="GBufferPass.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="GBufferPass.cpp">
+    <ClCompile Include="LightCullingPass.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -169,6 +169,12 @@
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="GBufferPass.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderObject.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,11 +1,11 @@
 #include <HiZDepthPass.h>
 
-HiZDepthPass::HiZDepthPass(float width, float height, const TextureMap& depth) :
+HiZDepthPass::HiZDepthPass(float width, float height, Scene* scene) :
 	mWidth(width),
 	mHeight(height),
 	hiZ("shader/HiZ.vert", "shader/HiZ.frag")
 {
-	rboDepth = depth;
+	rboDepth = scene->getTextureMap("rboDepth");
 }
 
 HiZDepthPass::~HiZDepthPass() {
@@ -17,7 +17,7 @@ void HiZDepthPass::init() {
 	glUniform1i(glGetUniformLocation(hiZ.Program, "LastMip"), 0);
 
 	hizFBO.Bind();
-	hizFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID);
+	hizFBO.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth->textureID);
 	hizFBO.Unbind();
 }
 
@@ -26,7 +26,7 @@ void HiZDepthPass::update() {
 	hiZ.Use();
 	glDepthFunc(GL_ALWAYS);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
+	glBindTexture(GL_TEXTURE_2D, rboDepth->textureID);
 }
 
 void HiZDepthPass::execute() {
@@ -47,7 +47,7 @@ void HiZDepthPass::execute() {
 		glViewport(0, 0, currentWidth, currentHeight);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, i - 1);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, i - 1);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth.textureID, i);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth->textureID, i);
 		RenderBufferQuad();
 	}
 	numLevels = std::min(numLevels, 7);

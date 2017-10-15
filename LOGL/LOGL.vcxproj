@@ -81,7 +81,7 @@
     <ClCompile Include="imgui_draw.cpp" />
     <ClCompile Include="imgui_impl_glfw.cpp" />
     <ClCompile Include="includes\imgui.cpp" />
-    <ClCompile Include="LightCulling.cpp" />
+    <ClCompile Include="LightCullingPass.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="TextureMap.cpp" />
@@ -126,7 +126,9 @@
     <ClInclude Include="includes\stb_textedit.h" />
     <ClInclude Include="includes\stb_truetype.h" />
     <ClInclude Include="LightCullingPass.h" />
+    <ClInclude Include="RenderObject.h" />
     <ClInclude Include="RenderPass.h" />
+    <ClInclude Include="Scene.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

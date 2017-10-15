@@ -1,5 +1,6 @@
 #pragma once
 #include <GL/glew.h>
+#include <cstdlib>
 #include <assert.h>
 #include <string>
 #include <algorithm>
@@ -9,6 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <TextureMap.h>
 
 
 GLuint loadTexture(GLchar* path);
