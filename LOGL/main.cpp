@@ -22,13 +22,14 @@
 #include <GBufferPass.h>
 #include <HiZDepthPass.h>
 #include <LightCullingPass.h>
+#include <SsrTracePass.h>
 
 
 
 
 
 
-const GLuint screenWidth = 1600, screenHeight = 900;
+const GLuint screenWidth = 960, screenHeight = 640;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -578,6 +579,7 @@ int main()
 	};
 	std::cout << "Start loading texture" << std::endl;
 	std::unique_ptr<TextureMap> blueNoiseTex(new TextureMap("./textures/tex_BlueNoise_256x256_UNI.png"));
+	scene->addTextureMap("blueNoiseTex", blueNoiseTex.get());
 
 	//std::unique_ptr<TextureMap> texture1_ptr(new TextureMap("textures/pbr1.map"));
 	//std::unique_ptr<TextureMap> texture1d_ptr(new TextureMap("textures/brickwall.jpg"));
@@ -643,6 +645,7 @@ int main()
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//glBindTexture(GL_TEXTURE_2D, 0);
 	TextureMap BRDFLut(width, height, GL_RGB32F, GL_RGB, GL_UNSIGNED_BYTE, image, GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
+	scene->addTextureMap("BRDFLut", &BRDFLut);
 	stbi_image_free(image);
 
 	std::cout << "Loading Texture Finished\n" << std::endl;
@@ -752,6 +755,9 @@ int main()
 
 	LightCullingPass lightCullingPass(screenWidth, screenHeight, workGroupsX, workGroupsY, scene.get());
 	lightCullingPass.init();
+
+	SsrTracePass ssrTracePass(screenWidth, screenHeight, scene.get());
+	ssrTracePass.init();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -1023,54 +1029,25 @@ int main()
 		glUniform3fv(glGetUniformLocation(shaderLightingPass.Program, "viewPos"), 1, &camera.Position[0]);
 		RenderBufferQuad();
 
-
-
-		SSRHitpointFBO.Bind();
-
-		ssrTrace.Use();
-		ssrTrace.SetUniform("flagShadowMap", flagShadowMap);
-		ssrTrace.SetUniform("ProjectionMatrix", projection);
-		ssrTrace.SetUniform("ViewMatrix", view);
-		ssrTrace.SetUniform("preProjectionMatrix", previousProjection);
-		ssrTrace.SetUniform("preViewMatrix", previousView);
-		ssrTrace.SetUniform("inverseViewMatrix", glm::inverse(view));
-		ssrTrace.SetUniform("inverseProjectionMatrix", glm::inverse(projection));
-		ssrTrace.SetUniform("extRand1", dist(mt));
-		ssrTrace.SetUniform("tempRoughness", tempRoughness);
-		ssrTrace.SetUniform("frameIndex", currentFrameIndex);
-		ssrTrace.SetUniform("resolve", resolve);
-		ssrTrace.SetUniform("binaryIteration", binaryIteration);
-		ssrTrace.SetUniform("inputStride", pixelStride);
-		ssrTrace.SetUniform("screenWidth", (float)screenWidth);
-		ssrTrace.SetUniform("screenHeight", (float)screenHeight);
-		ssrTrace.SetUniform("mipLevel", (float)depthLevel);
-		ssrTrace.SetUniform("initStep", initStep);
-		ssrTrace.SetUniform("sampleBias", sampleBias);
-		ssrTrace.SetUniform("flagHiZ", flagHiZ);
-
-		//for (int i = 0; i <= 99; i++)
-		//{
-		//	ssrTrace.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), ssrResolveUniform.haltonNum[i]);
-		//}
-		glUniform3fv(glGetUniformLocation(ssrTrace.Program, "viewPos"), 1, &camera.Position[0]);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec.textureID);
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, depthMap.textureID);
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
-		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
-		glActiveTexture(GL_TEXTURE6);
-		glBindTexture(GL_TEXTURE_2D, blueNoiseTex->textureID);
-		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
+		
+		ssrTracePass.update(
+			view, 
+			projection, 
+			previousProjection, 
+			previousView,
+			camera.Position,
+			tempRoughness,
+			currentFrameIndex, 
+			resolve, 
+			binaryIteration, 
+			pixelStride, 
+			depthLevel, 
+			initStep, 
+			sampleBias, 
+			flagHiZ);
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
-		RenderBufferQuad();
+		ssrTracePass.execute();
+		//RenderBufferQuad();
 		glQueryCounter(queryID[1], GL_TIMESTAMP);
 		stopTimerAvailable = 0;
 		while (!stopTimerAvailable) {

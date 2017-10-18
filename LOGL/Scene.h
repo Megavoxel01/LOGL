@@ -7,15 +7,16 @@
 class Scene {
 public:
 	std::map<string, RenderObject*> sceneModel;
-	std::map<string, TextureMap*> renderTexture;
+	std::map<const string, TextureMap*> renderTexture;
 	std::map<string, Texture*> modelTexture;
 
 	TextureMap* getTextureMap(const string& name) {
-		return renderTexture.find(name)->second;
+		auto ret = renderTexture.find(name);
+		return ret->second;
 	}
 
 	void addTextureMap(const string& name, TextureMap* texture) {
-		renderTexture.insert(make_pair(const_cast<string&>(name), texture));
+		renderTexture.insert(make_pair(name, texture));
 	}
 
 	RenderObject* getRenderObject(const string& name) {

@@ -4,6 +4,8 @@ in vec2 TexCoords;
 out vec4 SSRHitPoint;
 
 
+
+
 uniform sampler2D gSpecular;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
@@ -24,10 +26,7 @@ uniform bool flagHiZ;
 
 //uniform float tempRoughness;
 
-layout (std430, binding=1) buffer shader_data
-{ 
-    float haltonNum[200];
-};
+
 
 uniform vec3 viewPos;
 uniform vec3 lightPos;
@@ -45,6 +44,11 @@ uniform float screenWidth;
 uniform float screenHeight;
 uniform float initStep;
 uniform float sampleBias;
+
+layout (std430, binding=1) buffer shader_data
+{ 
+    float haltonNum[200];
+};
 //float screenWidth=1900;
 //float screenHeight=1000;
 float near=0.01f;

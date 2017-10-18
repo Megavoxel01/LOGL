@@ -84,6 +84,7 @@
     <ClCompile Include="LightCullingPass.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
+    <ClCompile Include="SsrTracePass.cpp" />
     <ClCompile Include="TextureMap.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
@@ -129,6 +130,7 @@
     <ClInclude Include="RenderObject.h" />
     <ClInclude Include="RenderPass.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="SsrTracePass.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
