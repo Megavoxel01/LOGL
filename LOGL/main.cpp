@@ -23,6 +23,7 @@
 #include <HiZDepthPass.h>
 #include <LightCullingPass.h>
 #include <SsrTracePass.h>
+#include <DeferredShadingPass.h>
 
 
 
@@ -493,31 +494,6 @@ int main()
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, visibleLightIndexSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	
-
-
-	shaderLightingPass.Use();
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "gSpecular"), 0);
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "gNormal"), 1);
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "gAlbedoSpec"), 2);
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "shadowMap"), 3);
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "sceneDepth"), 4);
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "prevFrame1"), 5);
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "blueNoise"), 6);
-	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "BRDFLut"), 7);
-
-
-	ssrTrace.Use();
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "gSpecular"), 0);
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "gNormal"), 1);
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "gAlbedoSpec"), 2);
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "shadowMap"), 3);
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "sceneDepth"), 4);
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "prevFrame1"), 5);
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "blueNoise"), 6);
-	glUniform1i(glGetUniformLocation(ssrTrace.Program, "BRDFLut"), 7);
-
-
 	emmisiveTrace.Use();
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gSpecular"), 0);
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gNormal"), 1);
@@ -756,6 +732,9 @@ int main()
 	LightCullingPass lightCullingPass(screenWidth, screenHeight, workGroupsX, workGroupsY, scene.get());
 	lightCullingPass.init();
 
+	DeferredShadingPass deferredShadingPass(screenWidth, screenHeight, workGroupsX, scene.get());
+	deferredShadingPass.init();
+
 	SsrTracePass ssrTracePass(screenWidth, screenHeight, scene.get());
 	ssrTracePass.init();
 
@@ -962,72 +941,24 @@ int main()
 		t_hiz = (stopTime - startTime) / 1000000.0;
 
 		glDepthMask(GL_FALSE);
-		//glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
-		linearFBO.Bind();
-		//glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
-		//glGenerateMipmap(GL_TEXTURE_2D);
-		//glBindTexture(GL_TEXTURE_2D, 0);
-		shaderLightingPass.Use();
-		shaderLightingPass.SetUniform("flagShadowMap", flagShadowMap);
-		shaderLightingPass.SetUniform("_ProjectionMatrix", projection);
-		shaderLightingPass.SetUniform("ViewMatrix", view);
-		shaderLightingPass.SetUniform("preProjectionMatrix", previousProjection);
-		shaderLightingPass.SetUniform("preViewMatrix", previousView);
-		shaderLightingPass.SetUniform("inverseViewMatrix", glm::inverse(view));
-		shaderLightingPass.SetUniform("inverseProjectionMatrix", glm::inverse(projection));
-		shaderLightingPass.SetUniform("extRand1", dist(mt));
-		shaderLightingPass.SetUniform("tempRoughness", tempRoughness);
-		shaderLightingPass.SetUniform("frameIndex", currentFrameIndex);
-		shaderLightingPass.SetUniform("resolve", resolve);
-		shaderLightingPass.SetUniform("binaryIteration", binaryIteration);
-		shaderLightingPass.SetUniform("inputStride", pixelStride);
-		shaderLightingPass.SetUniform("screenWidth", (float)screenWidth);
-		shaderLightingPass.SetUniform("screenHeight", (float)screenHeight);
-		shaderLightingPass.SetUniform("numberOfTilesX", workGroupsX);
 
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec.textureID);
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, depthMap.textureID);
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
-		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
-		glActiveTexture(GL_TEXTURE6);
-		glBindTexture(GL_TEXTURE_2D, blueNoiseTex->textureID);
-		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
-
-
-
-
-		glUniformMatrix4fv(glGetUniformLocation(shaderLightingPass.Program, "LightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
-		glUniform3fv(glGetUniformLocation(shaderLightingPass.Program, "lightPos"), 1, &lightPos[0]);
-		// Also send light relevant uniforms
-	
-		glUniform3fv(glGetUniformLocation(ssrResolve.Program, "viewPos"), 1, &camera.Position[0]);
-		//for (GLuint i = 0; i < NR_LIGHTS; i++)
-		//{
-		//	const GLfloat constant = 1.0;
-		//	const GLfloat linear = 0.7;
-		//	const GLfloat quadratic = 1.8;
-		//	shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Position").c_str(), &lightInfo.light[i].position[0]);
-		//	shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Color").c_str(), &lightInfo.light[i].color[0]);
-		//	shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Linear").c_str(), linear);
-		//	shaderLightingPass.SetUniform(("lights[" + std::to_string(i) + "].Quadratic").c_str(), quadratic);
-		//}
-		//float _halton[200];
-		//for (int i = 0; i <= 99; i++)
-		//{
-		//	shaderLightingPass.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), ssrResolveUniform.haltonNum[i]);
-		//}
-		glUniform3fv(glGetUniformLocation(shaderLightingPass.Program, "viewPos"), 1, &camera.Position[0]);
-		RenderBufferQuad();
+		deferredShadingPass.update(view,
+			projection,
+			previousProjection,
+			previousView,
+			lightSpaceMatrix,
+			camera.Position,
+			lightPos,
+			tempRoughness,
+			currentFrameIndex,
+			resolve,
+			binaryIteration,
+			pixelStride,
+			depthLevel,
+			initStep,
+			sampleBias,
+			flagShadowMap);
+		deferredShadingPass.execute();
 
 		
 		ssrTracePass.update(

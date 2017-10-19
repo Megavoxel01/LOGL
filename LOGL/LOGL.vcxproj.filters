@@ -63,6 +63,9 @@
     <ClCompile Include="SsrTracePass.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DeferredShadingPass.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.frag" />
@@ -181,6 +184,9 @@
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="SsrTracePass.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="DeferredShadingPass.h">
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
   </ItemGroup>
