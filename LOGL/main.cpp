@@ -24,6 +24,7 @@
 #include <LightCullingPass.h>
 #include <SsrTracePass.h>
 #include <DeferredShadingPass.h>
+#include <SsrResolvePass.h>
 
 
 
@@ -738,6 +739,10 @@ int main()
 	SsrTracePass ssrTracePass(screenWidth, screenHeight, scene.get());
 	ssrTracePass.init();
 
+	SsrResolvePass ssrResolvePass(screenWidth, screenHeight, scene.get());
+	ssrResolvePass.init();
+
+
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	ImGui_ImplGlfwGL3_Init(window, true);
@@ -1077,60 +1082,27 @@ int main()
 		//glGenerateMipmap(GL_TEXTURE_2D);
 		//glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
 
-		SSRColorFBO.Bind();
-		ssrResolve.Use();
-		ssrResolve.SetUniform("flagShadowMap", flagShadowMap);
-		ssrResolve.SetUniform("ProjectionMatrix", projection);
-		ssrResolve.SetUniform("ViewMatrix", view);
-		ssrResolve.SetUniform("preProjectionMatrix", previousProjection);
-		ssrResolve.SetUniform("preViewMatrix", previousView);
-		ssrResolve.SetUniform("inverseViewMatrix", glm::inverse(view));
-		ssrResolve.SetUniform("inverseProjectionMatrix", glm::inverse(projection));
-		ssrResolve.SetUniform("extRand1", dist(mt));
-		ssrResolve.SetUniform("tempRoughness", tempRoughness);
-		ssrResolve.SetUniform("frameIndex", currentFrameIndex);
-		ssrResolve.SetUniform("resolve", resolve);
-		ssrResolve.SetUniform("binaryIteration", binaryIteration);
-		ssrResolve.SetUniform("inputStride", pixelStride);
-		ssrResolve.SetUniform("screenWidth", (float)screenWidth);
-		ssrResolve.SetUniform("screenHeight", (float)screenHeight);
-		ssrResolve.SetUniform("sampleBias", sampleBias);
-		ssrResolve.SetUniform("debugTest", debugTest);
-		ssrResolve.SetUniform("rangle", angle);
-		ssrResolve.SetUniform("flagEmmisive", flagEmmisive);
-		ssrResolve.SetUniform("viewPos", camera.Position);
-		//for (int i = 0; i <= 99; i++)
-		//{
-		//	ssrResolve.SetUniform(("haltonNum[" + std::to_string(i) + "]").c_str(), ssrResolveUniform.haltonNum[i]);
-		//}
-		//glBindBuffer(GL_SHADER_STORAGE_BUFFER, haltonSSBO);
-		//GLvoid* p1 = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-		//memcpy(p1, &haltonUniform, sizeof(haltonUniform));
-		//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-		//glUniform3fv(glGetUniformLocation(ssrResolve.Program, "viewPos"), 1, &camera.Position[0]);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec.textureID);
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
-		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, blueNoiseTex->textureID);
-		glActiveTexture(GL_TEXTURE6);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
-		glActiveTexture(GL_TEXTURE7);
-		glBindTexture(GL_TEXTURE_2D, SSRHitPoint.textureID);
-		glActiveTexture(GL_TEXTURE8);
-		glBindTexture(GL_TEXTURE_2D, SSRHitPixel.textureID);
-		glActiveTexture(GL_TEXTURE9);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, IBL);
+		ssrResolvePass.update(view,
+						projection,
+						previousProjection,
+						previousView,
+						camera.Position,
+						tempRoughness,
+						currentFrameIndex,
+						resolve,
+						binaryIteration,
+						pixelStride,
+						depthLevel,
+						initStep,
+						sampleBias,
+						flagShadowMap,
+						flagEmmisive,
+						angle,
+						IBL);
+		
 
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
-		RenderBufferQuad();
+		ssrResolvePass.execute();
 		glQueryCounter(queryID[1], GL_TIMESTAMP);
 		stopTimerAvailable = 0;
 		while (!stopTimerAvailable) {

@@ -7,14 +7,6 @@ DeferredShadingPass::DeferredShadingPass(float width, float height, float workGr
 	shaderLightingPass("shader/deferred_shading.vert", "shader/deferred_shading.frag")
 {
 	this->scene = scene;
-}
-
-DeferredShadingPass::~DeferredShadingPass(){
-
-}
-
-void DeferredShadingPass::init(){
-	this->scene = scene;
 	this->linearColorBuffer = scene->getTextureMap("linearColorBuffer");
 	this->gSpecular = scene->getTextureMap("gSpecular");
 	this->gNormal = scene->getTextureMap("gNormal");
@@ -24,6 +16,14 @@ void DeferredShadingPass::init(){
 	this->prevColorFrame1 = scene->getTextureMap("prevColorFrame1");
 	this->blueNoiseTex = scene->getTextureMap("blueNoiseTex");
 	this->BRDFLut = scene->getTextureMap("BRDFLut");
+}
+
+DeferredShadingPass::~DeferredShadingPass(){
+
+}
+
+void DeferredShadingPass::init(){
+
 
 	shaderLightingPass.Use();
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "gSpecular"), 0);
