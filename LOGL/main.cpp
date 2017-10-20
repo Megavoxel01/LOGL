@@ -25,6 +25,7 @@
 #include <SsrTracePass.h>
 #include <DeferredShadingPass.h>
 #include <SsrResolvePass.h>
+#include <SsrCombinePass.h>
 
 
 
@@ -506,18 +507,6 @@ int main()
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "BRDFLut"), 7);
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "ePosition"), 8);
 
-	ssrResolve.Use();
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "gSpecular"), 0);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "gNormal"), 1);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "gAlbedoSpec"), 2);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "sceneDepth"), 3);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "currFrame"), 4);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "blueNoise"), 5);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "BRDFLut"), 6);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpoint"), 7);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpixel"), 8);
-	glUniform1i(glGetUniformLocation(ssrResolve.Program, "IBL"), 9);
-
 	ssrCombine.Use();
 	glUniform1i(glGetUniformLocation(ssrCombine.Program, "ssrBuffer"), 0);
 	glUniform1i(glGetUniformLocation(ssrCombine.Program, "drBuffer"), 1);
@@ -741,6 +730,9 @@ int main()
 
 	SsrResolvePass ssrResolvePass(screenWidth, screenHeight, scene.get());
 	ssrResolvePass.init();
+
+	SsrCombinePass ssrCombinePass(scene.get());
+	ssrCombinePass.init();
 
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1123,17 +1115,8 @@ int main()
 			screenWidth, screenHeight, 1);
 
 
-
-		//glDisable(GL_DEPTH_TEST);
-		//glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
-		linearFBO.Bind();
-		ssrCombine.Use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, currSSR.textureID);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, linearColorBuffer.textureID);
-		RenderBufferQuad();
-
+		ssrCombinePass.update();
+		ssrCombinePass.execute();
 
 
 		//glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
