@@ -33,7 +33,7 @@
 
 
 
-const GLuint screenWidth = 960, screenHeight = 640;
+const GLuint screenWidth = 1600, screenHeight = 900;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -1211,21 +1211,8 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, hdrColorBuffer.textureID);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, SSRHitPoint.textureID);
-		//glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
-		//glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, numLevels - 1);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 2);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, numLevels - 1);
 		toScreen.SetUniform("miplevel", (float)debugMip);
 		RenderBufferQuad();
-
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		//glBindFramebuffer(GL_READ_FRAMEBUFFER, hdrFBO);
-		//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		//glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		{
 			static float f = 0.0f;
