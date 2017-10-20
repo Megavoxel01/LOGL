@@ -88,6 +88,7 @@
     <ClCompile Include="SsrCombinePass.cpp" />
     <ClCompile Include="SsrResolvePass.cpp" />
     <ClCompile Include="SsrTracePass.cpp" />
+    <ClCompile Include="TemporalSSAAPass.cpp" />
     <ClCompile Include="TextureMap.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
@@ -137,6 +138,7 @@
     <ClInclude Include="SsrCombinePass.h" />
     <ClInclude Include="SsrResolvePass.h" />
     <ClInclude Include="SsrTracePass.h" />
+    <ClInclude Include="TemporalSSAAPass.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -26,6 +26,7 @@
 #include <DeferredShadingPass.h>
 #include <SsrResolvePass.h>
 #include <SsrCombinePass.h>
+#include <TemporalSSAAPass.h>
 
 
 
@@ -734,6 +735,9 @@ int main()
 	SsrCombinePass ssrCombinePass(scene.get());
 	ssrCombinePass.init();
 
+	TemporalSsaaPass temporalSsaaPass(screenWidth, screenHeight, scene.get());
+	temporalSsaaPass.init();
+
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -1139,43 +1143,22 @@ int main()
 		glDepthFunc(GL_LESS);
 		glDepthRange(0, 1.0f);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		linearFBO.Unbind();
 
 
-
-
-
-
-
-		//glBindFramebuffer(GL_FRAMEBUFFER, linearFBO);
-		linearFBO.Bind();
-		TAA.Use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, linearColorBuffer.textureID);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, prevColorFrame1.textureID);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, gSpecular.textureID);
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, rboDepth.textureID);
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, gNormal.textureID);
-		glActiveTexture(GL_TEXTURE5);
-		glBindTexture(GL_TEXTURE_2D, BRDFLut.textureID);
-		TAA.SetUniform("ProjectionMatrix", projection);
-		TAA.SetUniform("ViewMatrix", view);
-		TAA.SetUniform("preProjectionMatrix", previousProjection);
-		TAA.SetUniform("preViewMatrix", previousView);
-		TAA.SetUniform("inverseViewMatrix", glm::inverse(view));
-		TAA.SetUniform("inverseProjectionMatrix", glm::inverse(projection));
-		TAA.SetUniform("screenWidth", (float)screenWidth);
-		TAA.SetUniform("screenHeight", (float)screenHeight);
-		TAA.SetUniform("temporal", flagTemporal);
-		TAA.SetUniform("TAAscale", TAAscale);
-		TAA.SetUniform("TAAresponse", TAAresponse);
-		glUniform3fv(glGetUniformLocation(emmisiveTrace.Program, "viewPos"), 1, &camera.Position[0]);
+		temporalSsaaPass.update(
+			view,
+			projection,
+			previousProjection,
+			previousView,
+			camera.Position,
+			TAAscale,
+			TAAresponse,
+			flagTemporal
+			);
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
-		RenderBufferQuad();
+		//RenderBufferQuad();
+		temporalSsaaPass.execute();
 		glQueryCounter(queryID[1], GL_TIMESTAMP);
 		stopTimerAvailable = 0;
 		while (!stopTimerAvailable) {
