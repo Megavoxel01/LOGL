@@ -108,6 +108,7 @@
     <ClInclude Include="..\includes\stb_textedit.h" />
     <ClInclude Include="..\includes\stb_truetype.h" />
     <ClInclude Include="DeferredShadingPass.h" />
+    <ClInclude Include="EmissiveSsrPass.h" />
     <ClInclude Include="GBufferPass.h" />
     <ClInclude Include="HiZDepthPass.h" />
     <ClInclude Include="includes\image_DXT.h" />
