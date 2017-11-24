@@ -132,6 +132,11 @@ vec3 WorldPosFromDepth(){
     return worldSpacePosition.xyz;
 }
 
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+} 
+
 vec3 ViewPosFromDepth(){
     float z = texture(sceneDepth, TexCoords).r;
     z = z * 2.0 - 1.0;
@@ -338,36 +343,16 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
             weightSum+=neighbourISPdf;  
         }
     }
-    ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-7))*specStrength,1);
+    ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-7)),1);
+    ssrcolor.xyz/=1-Luminance(ssrcolor.xyz);
     if(ssrcolor.x<=0)
     //if(false)
     {
-        //return vec4(1);
         vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(wsNormal)));
-        //return vec4(iblRef,1);
-        float mipL=roughness*1.5;
-        vec3 IBLColor=texture(IBL,-iblRef, mipL).rgb*specStrength;
-        IBLColor.xyz/=1+Luminance(IBLColor.rgb);
+        float mipL=roughness*2.5;
+        vec3 IBLColor=texture(IBL,-iblRef, mipL).rgb;
         ssrcolor.xyz=IBLColor;
     }
-
-    ssrcolor.xyz/=1-Luminance(ssrcolor.xyz);
-    //ssrcolor.xyz=vec3(texture(ssrHitpixel,TexCoords).xy,1);
-    
-
-
-
-
-            
-
-    //refColor*=vec3(BRDF);
-    //refColor=vec3(hitPixel,0); 
-    
-
-    //return vec4(ssrcolor.xyz/float(numSamples),0);
-    //return vec4(vec2(screenWidth,screenHeight)/2000,0,1.0f);
-    //return vec4(debug,1.0f);
-    //return vec4(texture(ssrHitpixel,TexCoords).xy,1,1);
     return vec4(ssrcolor.xyz,1);
 }
 
@@ -387,21 +372,24 @@ void main()
     vec4 fragPosLightSpace=LightSpaceMatrix*vec4(FragPos,1.0f);
     vec3 lighting = vec3(0.0f);
     vec3 viewDir  = normalize(viewPos - FragPos);
+
+    vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(Normal)));
+    //return vec4(iblRef,1);
+    float mipL=Gloss*2.5;
+    vec3 IBLColor=texture(IBL,-iblRef, mipL).rgb;
+    //IBLColor.xyz/=1+Luminance(IBLColor.rgb);
+    FragColor=vec4(IBLColor, 1.0f);
+
     if(Gloss<0.5f)
+    //if(false)
     {
         FragColor=SSRef1(FragPos,Normal,viewDir,Gloss,Specular,Diffuse);
-    }else{
-        vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(Normal)));
-        //return vec4(iblRef,1);
-        float mipL=Gloss*2.5;
-        vec3 IBLColor=texture(IBL,-iblRef, mipL).rgb*Specular;
-        IBLColor.xyz/=1+Luminance(IBLColor.rgb);
-        FragColor=vec4(IBLColor, 1.0f);
     }
     float roughness=Gloss;
     float NdotV=max(dot(normalize(Normal),normalize(viewDir)),1e-5);
     vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
-    FragColor.xyz=(FragColor.xyz*FG.x+vec3(FG.y));
+    FragColor.xyz=FragColor.xyz*(Specular*FG.x+FG.yyy);
+    
     //if(FragColor)
     //FragColor=vec4(vec3(Gloss),1);
 
