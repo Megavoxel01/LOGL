@@ -256,13 +256,6 @@ void main()
 	//previous = clipToAABB(previous, averageColor.w, currentMin.xyz, currentMax.xyz);
 	//vec3 hdrColor;
 	//color=temporal ? vec4(mix(current,previous,TAAresponse).rgb,1) : texture(hdrBuffer, TexCoords);
-
-    vec3 FragPos = texture(gSpecular, TexCoords).rgb;
-    vec3 Normal = texture(gNormal, TexCoords).rgb;
-    vec3 viewDir  = normalize(viewPos - FragPos);
-    float roughness=texture(gNormal, TexCoords).a;
-    float NdotV=max(dot(normalize(Normal),normalize(viewDir)),1e-9);
-    vec3 FG=texture(BRDFLut,vec2(NdotV,roughness)).xyz;
     //color.xyz=(color.xyz*FG.x+vec3(FG.y));
 
 	//hdrColor=temporal ? mix(current,previous,TAAresponse).rgb : texture(hdrBuffer, TexCoords).rgb;

@@ -27,6 +27,7 @@
 #include <SsrResolvePass.h>
 #include <SsrCombinePass.h>
 #include <TemporalSSAAPass.h>
+#include <SsrFilterPass.h>
 
 
 
@@ -577,14 +578,14 @@ int main()
 	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/LIGHTGREY.png"));
 	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/greyR.png"));
 	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/rustediron-streaks_normal.png"));
-	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/iron-rusted4-basecolor.png"));
-	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/iron-rusted4-metalness.png"));
-	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/iron-rusted4-roughness_1.png"));
-	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/iron-rusted4-normal.png"));
-	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
-	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
-	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
-	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
+	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/iron-rusted4-basecolor.png"));
+	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/iron-rusted4-metalness.png"));
+	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/iron-rusted4-roughness_1.png"));
+	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/iron-rusted4-normal.png"));
+	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
+	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
+	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
 	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
 	std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
 
@@ -697,6 +698,8 @@ int main()
 	scene->addTextureMap("currSSR", &currSSR);
 	SSRColorFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currSSR.textureID);
 	SSRColorFBO.Unbind();
+	TextureMap prevSSR1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
+	scene->addTextureMap("prevSSR1", &prevSSR1);
 
 	Framebuffer prevFrameFBO;
 	prevFrameFBO.Bind();
@@ -707,8 +710,7 @@ int main()
 
 	Framebuffer emmisiveFBO;
 	emmisiveFBO.Bind();
-	TextureMap prevSSR1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
-	scene->addTextureMap("prevSSR1", &prevSSR1);
+
 	TextureMap emmisiveDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	scene->addTextureMap("emmisiveDepth", &emmisiveDepth);
 	emmisiveFBO.AttachTexture(0, GL_DEPTH_COMPONENT, GL_TEXTURE_2D, emmisiveDepth.textureID);
@@ -732,12 +734,16 @@ int main()
 	SsrResolvePass ssrResolvePass(screenWidth, screenHeight, scene.get());
 	ssrResolvePass.init();
 
+	SsrFilterPass ssrFilterPass(screenWidth, screenHeight, scene.get());
+	ssrFilterPass.init();
+
 	SsrCombinePass ssrCombinePass(scene.get());
 	ssrCombinePass.init();
 
 	TemporalSsaaPass temporalSsaaPass(screenWidth, screenHeight, scene.get());
 	temporalSsaaPass.init();
 
+	
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -959,12 +965,7 @@ int main()
 		glGetQueryObjectui64v(queryID[0], GL_QUERY_RESULT, &startTime);
 		glGetQueryObjectui64v(queryID[1], GL_QUERY_RESULT, &stopTime);
 
-		t_ssrTrace = (stopTime - startTime) / 1000000.0;
-
-
-
-
-		
+		t_ssrTrace = (stopTime - startTime) / 1000000.0;		
 
 		ssrResolvePass.update(view,
 						projection,
@@ -1001,13 +1002,27 @@ int main()
 
 		t_ssrResolve = (stopTime - startTime) / 1000000.0;
 
+
+		ssrFilterPass.update(
+			view,
+			projection,
+			previousProjection,
+			previousView,
+			camera.Position,
+			TAAscale,
+			TAAresponse,
+			flagTemporal
+			);
+		ssrFilterPass.execute();
+
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glCopyImageSubData(currSSR.textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
 			prevSSR1.textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
 			screenWidth, screenHeight, 1);
 
 
-		ssrCombinePass.update();
+		ssrCombinePass.update(camera.Position, view, projection);
 		ssrCombinePass.execute();
 
 

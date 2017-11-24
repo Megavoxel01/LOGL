@@ -86,6 +86,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="SsrCombinePass.cpp" />
+    <ClCompile Include="SsrFilterPass.cpp" />
     <ClCompile Include="SsrResolvePass.cpp" />
     <ClCompile Include="SsrTracePass.cpp" />
     <ClCompile Include="TemporalSSAAPass.cpp" />
@@ -137,6 +138,7 @@
     <ClInclude Include="RenderPass.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SsrCombinePass.h" />
+    <ClInclude Include="SsrFilterPass.h" />
     <ClInclude Include="SsrResolvePass.h" />
     <ClInclude Include="SsrTracePass.h" />
     <ClInclude Include="TemporalSSAAPass.h" />

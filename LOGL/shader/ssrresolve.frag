@@ -13,8 +13,8 @@ uniform sampler2D blueNoise;
 uniform sampler2D BRDFLut;
 uniform sampler2D ssrHitpoint;
 uniform sampler2D ssrHitpixel;
-uniform sampler2D prevSSR1;
 uniform samplerCube IBL;
+uniform sampler2D prevSSR1;
 
 
 
@@ -285,13 +285,13 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
     //float angle=jitter1.x*180;
             //vec2 jitter1=vec2(_random3,_random4)*2-1;
     //mat2x2 offsetRotationMatrix = mat2x2(sin(angle), cos(angle), -cos(angle), sin(angle));
-    for(float k=0;k<1;k++)
+    for(float k=0;k<2;k++)
     {
 
         for(float j=0;j<4;j++)
         {
             emmiFlag=false;
-            vec2 offsetUV=offset[(int(jitter1.x*7)*4+int(j))%28];
+            vec2 offsetUV=offset[(int(jitter1.x*7)*4*int(k+1)+int(j))%28];
             offsetUV+=ivec2(jitter1);
             offsetUV.x/=screenWidth;
             offsetUV.y/=screenHeight;

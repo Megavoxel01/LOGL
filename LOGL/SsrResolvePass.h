@@ -50,6 +50,7 @@ private:
 	TextureMap *SSRHitPoint;
 	TextureMap *SSRHitPixel;
 	TextureMap *currSSR;
+	TextureMap *prevSSR1;
 	Scene *scene;
 	glm::vec3 viewPos;
 

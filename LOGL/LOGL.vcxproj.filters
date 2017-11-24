@@ -75,6 +75,9 @@
     <ClCompile Include="TemporalSSAAPass.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="SsrFilterPass.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.frag" />
@@ -208,6 +211,9 @@
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="EmissiveSsrPass.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="SsrFilterPass.h">
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
   </ItemGroup>

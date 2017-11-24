@@ -16,6 +16,7 @@ ssrResolve("shader/ssrresolve.vert", "shader/ssrresolve.frag")
 	this->SSRHitPoint = scene->getTextureMap("SSRHitPoint");
 	this->SSRHitPixel = scene->getTextureMap("SSRHitPixel");
 	this->currSSR = scene->getTextureMap("currSSR");
+	this->prevSSR1 = scene->getTextureMap("prevSSR1");
 }
 
 SsrResolvePass::~SsrResolvePass(){
@@ -35,6 +36,7 @@ void SsrResolvePass::init(){
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpoint"), 7);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "ssrHitpixel"), 8);
 	glUniform1i(glGetUniformLocation(ssrResolve.Program, "IBL"), 9);
+	glUniform1i(glGetUniformLocation(ssrResolve.Program, "prevSSR1"), 10);
 
 	SSRColorFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currSSR->textureID);
 }
@@ -99,6 +101,8 @@ void SsrResolvePass::update(
 	glBindTexture(GL_TEXTURE_2D, SSRHitPixel->textureID);
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, IBL);
+	glActiveTexture(GL_TEXTURE10);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, prevSSR1->textureID);
 }
 
 void SsrResolvePass::execute(){
