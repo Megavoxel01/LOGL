@@ -88,7 +88,7 @@ void GBufferPass::execute() {
 	shaderGeometryPass.SetUniform("model", model);
 	shaderGeometryPass.SetUniform("projection", projection);
 	shaderGeometryPass.SetUniform("view", view);
-	flagGloss = 0;
+	flagGloss = 1;
 	flagMetallic = 1;
 	shaderGeometryPass.SetUniform("flagGloss", flagGloss);
 	shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);

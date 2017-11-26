@@ -53,7 +53,8 @@ void main()
     // also gamma correct while we're at it       
     //result = pow(result, vec3(1.0f / gamma));
     //color = hdr?vec4(result, 1.0f):vec4(hdrColor,1.0f);
-    color=vec4(curr,1.0f);
+    //curr = pow(curr, vec3(1/gamma));
+    color = vec4(curr,1.0f);
 
     //color=previous;
     //color.xyz/=1-Luminance(color.xyz);

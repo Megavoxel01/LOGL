@@ -345,7 +345,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
     }
     ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-7)),1);
     ssrcolor.xyz/=1-Luminance(ssrcolor.xyz);
-    if(ssrcolor.x<=0)
+    if(ssrcolor.x<=0 || hitPoint.z<-9999)
     //if(false)
     {
         vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(wsNormal)));

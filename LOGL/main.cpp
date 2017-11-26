@@ -14,8 +14,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <model.h>
-#include <SOIL.h>
-#include <stb_image.h>
+//#include <SOIL.h>
+#include <Utility.h>
 #include <TextureMap.h>
 #include <memory>
 #include <random>
@@ -28,13 +28,14 @@
 #include <SsrCombinePass.h>
 #include <TemporalSSAAPass.h>
 #include <SsrFilterPass.h>
+#include <IblDiffusePass.h>
 
 
 
 
 
 
-const GLuint screenWidth = 960, screenHeight = 480;
+const GLuint screenWidth = 1600, screenHeight = 900;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -582,10 +583,14 @@ int main()
 	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/iron-rusted4-metalness.png"));
 	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/iron-rusted4-roughness_1.png"));
 	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/iron-rusted4-normal.png"));
-	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
+	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
+	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
+	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
+	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/mat0_c.jpg"));
 	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
-	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
-	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
+	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/mat0_g.jpg"));
+	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/mat0_n.jpg"));
 	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
 	std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
 
@@ -708,6 +713,8 @@ int main()
 	prevFrameFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, prevColorFrame1.textureID);
 	prevFrameFBO.Unbind();
 
+	GLuint irradianceMap = 0;//changed to texture later
+
 	Framebuffer emmisiveFBO;
 	emmisiveFBO.Bind();
 
@@ -715,6 +722,9 @@ int main()
 	scene->addTextureMap("emmisiveDepth", &emmisiveDepth);
 	emmisiveFBO.AttachTexture(0, GL_DEPTH_COMPONENT, GL_TEXTURE_2D, emmisiveDepth.textureID);
 	emmisiveFBO.Unbind();
+
+	IblDiffusePass iblDiffusePass(irradianceMap);
+	iblDiffusePass.init();
 
 	GBufferPass gBufferPass(screenWidth, screenHeight, scene.get());
 	gBufferPass.init();
@@ -725,7 +735,7 @@ int main()
 	LightCullingPass lightCullingPass(screenWidth, screenHeight, workGroupsX, workGroupsY, scene.get());
 	lightCullingPass.init();
 
-	DeferredShadingPass deferredShadingPass(screenWidth, screenHeight, workGroupsX, scene.get());
+	DeferredShadingPass deferredShadingPass(screenWidth, screenHeight, workGroupsX, scene.get(), irradianceMap);
 	deferredShadingPass.init();
 
 	SsrTracePass ssrTracePass(screenWidth, screenHeight, scene.get());
@@ -1041,6 +1051,8 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glUniform1i(glGetUniformLocation(skyboxShader.Program, "skybox"), 0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glUniform1i(glGetUniformLocation(skyboxShader.Program, "irradianceMap"), 1);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 		glDepthFunc(GL_LESS);

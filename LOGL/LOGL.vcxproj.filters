@@ -78,6 +78,9 @@
     <ClCompile Include="SsrFilterPass.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="IblDiffusePass.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.frag" />
@@ -214,6 +217,9 @@
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
     <ClInclude Include="SsrFilterPass.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="IblDiffusePass.h">
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
   </ItemGroup>

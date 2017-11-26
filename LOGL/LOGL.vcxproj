@@ -77,6 +77,7 @@
     <ClCompile Include="framebuffer.cpp" />
     <ClCompile Include="GBufferPass.cpp" />
     <ClCompile Include="HiZDepthPass.cpp" />
+    <ClCompile Include="IblDiffusePass.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="imgui_demo.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
@@ -112,6 +113,7 @@
     <ClInclude Include="EmissiveSsrPass.h" />
     <ClInclude Include="GBufferPass.h" />
     <ClInclude Include="HiZDepthPass.h" />
+    <ClInclude Include="IblDiffusePass.h" />
     <ClInclude Include="includes\image_DXT.h" />
     <ClInclude Include="includes\image_helper.h" />
     <ClInclude Include="includes\imconfig.h" />

@@ -5,7 +5,7 @@
 
 class DeferredShadingPass : public RenderPass{
 public:	
-	DeferredShadingPass(float width, float height, float workGroupsX, Scene* scene);
+	DeferredShadingPass(float width, float height, float workGroupsX, Scene* scene, GLuint _irradianceMap);
 	~DeferredShadingPass();
 	void init();
 	void update(
@@ -32,6 +32,7 @@ private:
 	int mWidth;
 	int mHeight;
 	int mWorkGroupsX;
+	GLuint irradianceMap;
 	Shader shaderLightingPass;
 	glm::mat4 view;
 	glm::mat4 projection;

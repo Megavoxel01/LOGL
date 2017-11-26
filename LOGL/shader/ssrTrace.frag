@@ -838,7 +838,7 @@ bool trace_ray(
 }
 
 /////////////////////////////////////////
-#define MAX_ITERATIONS 45
+#define MAX_ITERATIONS 40
 #define HIZ_START_LEVEL 1
 #define HIZ_STOP_LEVEL 0
 #define HIZ_MAX_LEVEL 6
@@ -895,7 +895,7 @@ bool trace_ray_HIZ(
     int hitFlag=0;
 
     vec4 psPosition = ProjectionMatrix * vec4(csOrig, 1.0f);
-    vec3 ndcsPosition = psPosition.xyz / psPosition.w;
+    vec3 ndcsPosition = psPosition.xyz / max(psPosition.w, 1e-5);
     vec3 ssPosition = 0.5f * ndcsPosition + 0.5f;
     //csDir=reflect()
 

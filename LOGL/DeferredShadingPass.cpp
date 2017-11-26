@@ -1,10 +1,11 @@
 #include <DeferredShadingPass.h>
 
-DeferredShadingPass::DeferredShadingPass(float width, float height, float workGroupsX, Scene* scene) :
+DeferredShadingPass::DeferredShadingPass(float width, float height, float workGroupsX, Scene* scene, GLuint _irradianceMap) :
 	mWidth(width),
 	mHeight(height),
 	mWorkGroupsX(workGroupsX),
-	shaderLightingPass("shader/deferred_shading.vert", "shader/deferred_shading.frag")
+	shaderLightingPass("shader/deferred_shading.vert", "shader/deferred_shading.frag"),
+	irradianceMap(_irradianceMap)
 {
 	this->scene = scene;
 	this->linearColorBuffer = scene->getTextureMap("linearColorBuffer");
@@ -34,6 +35,7 @@ void DeferredShadingPass::init(){
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "prevFrame1"), 5);
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "blueNoise"), 6);
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "BRDFLut"), 7);
+	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "irradianceMap"), 8);
 
 	linearFBO.Bind();
 	linearFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, linearColorBuffer->textureID);
@@ -76,6 +78,8 @@ void DeferredShadingPass::update(
 	shaderLightingPass.SetUniform("screenWidth", (float)mWidth);
 	shaderLightingPass.SetUniform("screenHeight", (float)mHeight);
 	shaderLightingPass.SetUniform("numberOfTilesX", mWorkGroupsX);
+	shaderLightingPass.SetUniform("directionLightDir", glm::vec3(0, 2, 4));
+	shaderLightingPass.SetUniform("directionLightColor", glm::vec4(0.5, 0.5, 0.5, 1));
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gSpecular->textureID);
@@ -93,6 +97,8 @@ void DeferredShadingPass::update(
 	glBindTexture(GL_TEXTURE_2D, blueNoiseTex->textureID);
 	glActiveTexture(GL_TEXTURE7);
 	glBindTexture(GL_TEXTURE_2D, BRDFLut->textureID);
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
 
 
 
