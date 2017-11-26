@@ -12,14 +12,21 @@ public:
 	~IblDiffusePass() {
 	}
 	void init();
-	void update() {}
+	void update() ;
 	void execute() {}
+	unsigned int irradianceMap;
 private:
 	Shader irradianceShader;
 	Shader equirectangularToCubemapShader;
 	GLuint cubeVAO;
 	GLuint cubeVBO;
-	GLuint irradianceMap;
+	
+	unsigned int hdrTexture;
+	unsigned int captureFBO;
+	unsigned int captureRBO;
+	unsigned int envCubemap;
+	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+	static glm::mat4 captureViews[6];
 	//TextureMap *irradianceMap;
 	void renderCube()
 	{

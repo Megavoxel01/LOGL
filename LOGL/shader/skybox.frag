@@ -7,7 +7,7 @@ uniform samplerCube irradianceMap;
 
 void main()
 {    
-    //color = texture(skybox, TexCoords);
-    color = texture(irradianceMap, TexCoords);
+    color = texture(skybox, TexCoords);
+    //color = texture(irradianceMap, TexCoords);
     //color=vec4(0);
 }

@@ -567,11 +567,11 @@ int main()
 	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("textures/Aluminum-Scuffed_metallic.png"));
 	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("textures/Aluminum-Scuffed_roughness.png"));
 	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("textures/Aluminum-Scuffed_normal.png"));*/
-	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/number.png"));
+	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/LIGHTGREY.png"));
 	scene->addTextureMap("buddha_d_ptr", buddha_d_ptr.get());
-	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/BLACK.png"));
 	scene->addTextureMap("buddha_s_ptr", buddha_s_ptr.get());
-	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/Aluminum-Scuffed_roughness.png"));
+	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/BLACK.png"));
 	scene->addTextureMap("buddha_r_ptr", buddha_r_ptr.get());
 	std::unique_ptr<TextureMap> buddha_n_ptr(new TextureMap("./textures/Aluminum-Scuffed_normal.png"));
 	scene->addTextureMap("buddha_n_ptr", buddha_n_ptr.get());
@@ -725,6 +725,11 @@ int main()
 
 	IblDiffusePass iblDiffusePass(irradianceMap);
 	iblDiffusePass.init();
+	iblDiffusePass.update();
+	irradianceMap = iblDiffusePass.irradianceMap;
+	int scrWidth, scrHeight;
+	glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
+	glViewport(0, 0, scrWidth, scrHeight);
 
 	GBufferPass gBufferPass(screenWidth, screenHeight, scene.get());
 	gBufferPass.init();
@@ -814,6 +819,11 @@ int main()
 	glGenQueries(2, queryID);
 	while (!glfwWindowShouldClose(window))
 	{
+		//iblDiffusePass.init();
+		//iblDiffusePass.update();
+		int scrWidth, scrHeight;
+		glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
+		glViewport(0, 0, scrWidth, scrHeight);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, haltonSSBO);
 		GLvoid* haltonPointer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
 		memcpy(haltonPointer, &haltonUniform, sizeof(haltonUniform));
@@ -1048,10 +1058,12 @@ int main()
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 		glBindVertexArray(skyboxVAO);
-		glActiveTexture(GL_TEXTURE0);
+		
 		glUniform1i(glGetUniformLocation(skyboxShader.Program, "skybox"), 0);
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		glUniform1i(glGetUniformLocation(skyboxShader.Program, "irradianceMap"), 1);
+		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);

@@ -334,7 +334,7 @@ void main()
     lighting += diffuse + specular;
 
     vec3 irradiance = texture(irradianceMap, wsNormal).rgb;
-    lighting += diffuse * irradiance;
+    lighting += Diffuse * irradiance;
 
 
 
