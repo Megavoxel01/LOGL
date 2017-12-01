@@ -5,9 +5,9 @@
 
 class IblDiffusePass : public RenderPass {
 public:
-	IblDiffusePass(GLuint _irradianceMap)
+	IblDiffusePass(GLuint _irradianceMap, float *_data, int _width, int _height)
 		:irradianceShader("shader/irradiance.vert", "shader/irradiance.frag"), equirectangularToCubemapShader("shader/recToCube.vert", "shader/recToCube.frag"),
-		cubeVAO(0), cubeVBO(0), irradianceMap(_irradianceMap)
+		cubeVAO(0), cubeVBO(0), irradianceMap(_irradianceMap), data(_data), width(_width), height(_height)
 	{}
 	~IblDiffusePass() {
 	}
@@ -15,6 +15,7 @@ public:
 	void update() ;
 	void execute() {}
 	unsigned int irradianceMap;
+	unsigned int envCubemap;
 private:
 	Shader irradianceShader;
 	Shader equirectangularToCubemapShader;
@@ -24,7 +25,9 @@ private:
 	unsigned int hdrTexture;
 	unsigned int captureFBO;
 	unsigned int captureRBO;
-	unsigned int envCubemap;
+
+	float *data;
+	int width, height;
 	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	static glm::mat4 captureViews[6];
 	//TextureMap *irradianceMap;

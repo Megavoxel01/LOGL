@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <string>
 #define GLEW_STATIC
+#define STB_IMAGE_IMPLEMENTATION
 //#include <GL/glew.h>
 #include "Shader.h"
 #include <imgui.h>
@@ -29,13 +30,14 @@
 #include <TemporalSSAAPass.h>
 #include <SsrFilterPass.h>
 #include <IblDiffusePass.h>
+#include <IblSpecularPass.h>
 
 
 
 
 
 
-const GLuint screenWidth = 1600, screenHeight = 900;
+const GLuint screenWidth = 960, screenHeight = 480;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -315,6 +317,9 @@ int main()
 	Shader convolve("shader/convolve.vert", "shader/convolve.frag");
 	Shader emmisiveBuffer("shader/emmisive.vert", "shader/emmisive.frag");
 	Shader emmisiveTrace("shader/emmiTrace.vert", "shader/emmiTrace.frag");
+	int width1, height1, nrComponents1;
+	stbi_set_flip_vertically_on_load(true);
+	float *data = stbi_loadf("skybox/LA_Downtown_Helipad_GoldenHour_3k.hdr", &width1, &height1, &nrComponents1, 3);
 
 	//ourShader.Use();
 	//glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
@@ -714,6 +719,7 @@ int main()
 	prevFrameFBO.Unbind();
 
 	GLuint irradianceMap = 0;//changed to texture later
+	GLuint prefilterMap = 0;
 
 	Framebuffer emmisiveFBO;
 	emmisiveFBO.Bind();
@@ -723,10 +729,16 @@ int main()
 	emmisiveFBO.AttachTexture(0, GL_DEPTH_COMPONENT, GL_TEXTURE_2D, emmisiveDepth.textureID);
 	emmisiveFBO.Unbind();
 
-	IblDiffusePass iblDiffusePass(irradianceMap);
+	IblDiffusePass iblDiffusePass(irradianceMap, data, width1, height1);
 	iblDiffusePass.init();
 	iblDiffusePass.update();
+
+	IblSpecularPass iblSpecularPass(prefilterMap, data, width1, height1);
+	iblSpecularPass.envCubemap = iblDiffusePass.envCubemap;
+	iblSpecularPass.init();
+	iblSpecularPass.update();
 	irradianceMap = iblDiffusePass.irradianceMap;
+	prefilterMap = iblSpecularPass.prefilterMap;
 	int scrWidth, scrHeight;
 	glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 	glViewport(0, 0, scrWidth, scrHeight);
@@ -819,8 +831,8 @@ int main()
 	glGenQueries(2, queryID);
 	while (!glfwWindowShouldClose(window))
 	{
-		//iblDiffusePass.init();
-		//iblDiffusePass.update();
+		//iblSpecularPass.init();
+		//iblSpecularPass.update();
 		int scrWidth, scrHeight;
 		glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 		glViewport(0, 0, scrWidth, scrHeight);
@@ -1003,7 +1015,7 @@ int main()
 						flagShadowMap,
 						flagEmmisive,
 						angle,
-						IBL);
+						prefilterMap);
 		
 
 		glQueryCounter(queryID[0], GL_TIMESTAMP);
@@ -1061,7 +1073,7 @@ int main()
 		
 		glUniform1i(glGetUniformLocation(skyboxShader.Program, "skybox"), 0);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, iblSpecularPass.envCubemap);
 		glUniform1i(glGetUniformLocation(skyboxShader.Program, "irradianceMap"), 1);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);

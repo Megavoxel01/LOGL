@@ -1,4 +1,4 @@
-#define STB_IMAGE_IMPLEMENTATION
+
 #include <IblDiffusePass.h>
 
 glm::mat4 IblDiffusePass::captureViews[6] =
@@ -26,10 +26,7 @@ void IblDiffusePass::init() {
 
 	// pbr: load the HDR environment map
 	// ---------------------------------
-	stbi_set_flip_vertically_on_load(true);
-	int width, height, nrComponents;
-	float *data = stbi_loadf("skybox/LA_Downtown_Helipad_GoldenHour_3k.hdr", &width, &height, &nrComponents, 3);
-	//unsigned int hdrTexture;
+
 	if (data)
 	{
 		glGenTextures(1, &hdrTexture);
@@ -41,7 +38,7 @@ void IblDiffusePass::init() {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		stbi_image_free(data);
+		//stbi_image_free(data);
 	}
 	else
 	{

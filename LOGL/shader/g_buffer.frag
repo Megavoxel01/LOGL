@@ -38,7 +38,7 @@ void main()
     //if(roughness<=1e-5) gNormal.a=tempRoughness;
 
     gAlbedoSpec.rgb = texture(material.texture_diffuse1, TexCoords).rgb;
-    gAlbedoSpec.rgb = pow(abs(gAlbedoSpec.rgb), vec3(0.454545f));
+    //gAlbedoSpec.rgb = pow(abs(gAlbedoSpec.rgb), vec3(0.454545f));
 
     if(flagMetallic){
         float metalness = texture(material.texture_specular1, TexCoords).r;

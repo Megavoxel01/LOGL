@@ -146,6 +146,21 @@ vec4 TangentToWorld(vec3 N, vec4 H)
 }
 
 
+vec3 SchlickFresnel(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 specStrength)
+{
+
+        vec3 norm=normal;
+        float diff=max(dot(norm,lightDir),0.0);
+        vec3 halfVector=normalize(lightDir+viewDir);
+        float NdotL=clamp(dot(norm,lightDir),0.0,1.0);
+        float NdotV=clamp(dot(norm,viewDir),0.0,1.0);
+        float NdotH=clamp(dot(norm,halfVector),0.0,1.0);
+        float LdotH=clamp(dot(lightDir,halfVector),0.0,1.0);
+
+        vec3 F0=specStrength;
+        return F0 + (vec3(1.0f)-F0)*pow(1.0f-LdotH,5);
+}
+
 
 vec3 PhysicalBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 specStrength)
 {
@@ -292,8 +307,8 @@ void main()
     vec3 vsNormal = (ViewMatrix * vec4(wsNormal.xyz, 0)).xyz;
     float Gloss=texture(gNormal, TexCoords).a;
     //tempRoughness=Gloss;
-    vec3 Diffuse = texture(gAlbedoSpec, TexCoords).rgb;
-    Diffuse.rgb = pow(abs(Diffuse.rgb), vec3(2.2f));
+    vec3 Albedo = texture(gAlbedoSpec, TexCoords).rgb;
+    //Albedo.rgb = pow(abs(Albedo.rgb), vec3(2.2f));
     //Diffuse=vec3(1,0,0);
     vec3 Specular = texture(gSpecular, TexCoords).rgb;
     vec4 fragPosLightSpace=LightSpaceMatrix*vec4(FragPos, 1.0f);
@@ -317,24 +332,27 @@ void main()
         Light light = lights[lightIndex];
         //Light light = lights[i];
         vec3 vsLightDir = normalize((ViewMatrix * vec4(light.Position.xyz, 1)).xyz - vsFragPos);
-        diffuse = max(dot(vsNormal, vsLightDir), 0.0) * Diffuse * light.Color.xyz;
+        diffuse = max(dot(vsNormal, vsLightDir), 0.0) * Albedo * light.Color.xyz;
         BRDF=PhysicalBRDF(vsLightDir,vsViewDir, vsNormal, Gloss, Specular);
         specular = light.Color.xyz * BRDF;
         float distance = length(light.Position.xyz - FragPos);
         float attenuation = 1.0 / (1.0 + distance*4);
         diffuse *= attenuation;
+        diffuse*=vec3(1.0) - SchlickFresnel(vsLightDir,vsViewDir, vsNormal, Gloss, Specular);
         //specular *= attenuation;
         lighting += diffuse + specular;
     }
     //direction light
     vec3 vsLDir = (ViewMatrix *vec4(directionLightDir, 0)).xyz;
-    diffuse = max(dot(vsNormal, vsLDir), 0.0) * Diffuse * directionLightColor.xyz;
+    diffuse = max(dot(vsNormal, vsLDir), 0.0) * Albedo * directionLightColor.xyz;
     BRDF=PhysicalBRDF(vsLDir,vsViewDir, vsNormal, Gloss, Specular);
     specular = directionLightColor.xyz * BRDF;
+    diffuse*=vec3(1.0) - SchlickFresnel(vsLDir,vsViewDir, vsNormal, Gloss, Specular);
     lighting += diffuse + specular;
 
     vec3 irradiance = texture(irradianceMap, wsNormal).rgb;
-    lighting += Diffuse * irradiance;
+    irradiance *=vec3(1.0) - SchlickFresnel(vsLDir,vsViewDir, vsNormal, Gloss, Specular);
+    lighting += Albedo * irradiance;
 
 
 
@@ -343,6 +361,6 @@ void main()
     //FragColor = vec4((vec3(i)/float(NR_LIGHTS)), 1.0f);
     //if(Gloss<0.4f)
         //FragColor=SSR(FragPos,Normal, viewDir);
-    if(Diffuse.x>=1.0f) FragColor=vec4(3,3,3,1);
+    if(Albedo.x>=1.0f) FragColor=vec4(3,3,3,1);
 }
 
