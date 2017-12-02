@@ -345,7 +345,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
     }
     ssrcolor=vec4(neighcolorSum/max(weightSum,vec3(1e-7)),1);
     ssrcolor.xyz/=1-Luminance(ssrcolor.xyz);
-    if(ssrcolor.x<=0 || hitPoint.z<-9999)
+    if(ssrcolor.x<=1e-4 || hitPoint.z<-999)
     //if(false)
     {
         vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(wsNormal)));
@@ -373,12 +373,15 @@ void main()
     vec3 lighting = vec3(0.0f);
     vec3 viewDir  = normalize(viewPos - FragPos);
 
-    vec3 iblRef=normalize(reflect(normalize(viewDir), normalize(Normal)));
+    vec3 iblRef=normalize(reflect(viewDir, Normal));
     //return vec4(iblRef,1);
     float mipL=Gloss*2.5;
     vec3 IBLColor=texture(IBL,-iblRef, mipL).rgb;
     //IBLColor.xyz/=1+Luminance(IBLColor.rgb);
+    //FragColor=vec4(iblRef, 1.0f);
+    //if(IBLColor.x<1e-4) IBLColor = vec3(0);
     FragColor=vec4(IBLColor, 1.0f);
+    //FragColor = vec4(0.5,0,0,1);
 
     if(Gloss<0.5f)
     //if(false)

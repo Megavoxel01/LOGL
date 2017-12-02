@@ -27,6 +27,8 @@ uniform float TAAresponse;
 
 uniform vec3 viewPos;
 
+
+
 vec3 WorldPosFromDepth(){
     float z = texture(sceneDepth, TexCoords).r;
     z = z * 2.0 - 1.0;
@@ -125,13 +127,12 @@ void main()
     //vec4 positionWS=vec4(texture(gSpecular,TexCoords).rgb,1);
     //if(LinearizeDepth(texture(sceneDepth,TexCoords).x)>=0.9f)
     //if(texture(sceneDepth,TexCoords).x>=0.999999f) 
-    if(false)
+    if(!temporal)
     {
     	color=texture(hdrBuffer, TexCoords);
     	//color=vec4(1,0,0,1);
     	return;
     }
-    		
     vec4 positionVS=vec4(ViewPosFromDepth(), 1.0f);
     vec4 positionCS=preProjectionMatrix*positionVS;
     vec2 prevUV=0.5*(positionCS.xy/positionCS.w)+0.5;
@@ -165,22 +166,22 @@ void main()
         return;
     }
     cCenter.rgb/=1+Luminance(cCenter.rgb);
-    vec3 cN1 = texture(hdrBuffer, TexCoords + texel * vec2(-1.0f, -1.0f)).xyz;
+    vec3 cN1 = texture(hdrBuffer, TexCoords + texel * vec2(-1.05f, -1.05f)).xyz;
     cN1.rgb/=1+Luminance(cN1.rgb);
     vec3 cN2 = texture(hdrBuffer, TexCoords + texel * vec2( 1.0f, -1.0f)).xyz;
     cN2.rgb/=1+Luminance(cN1.rgb);
-    vec3 cN3 = texture(hdrBuffer, TexCoords + texel * vec2(-1.0f,  1.0f)).xyz;
+    vec3 cN3 = texture(hdrBuffer, TexCoords + texel * vec2(-1.05f,  1.0f)).xyz;
     cN3.rgb/=1+Luminance(cN1.rgb);
-    vec3 cN4 = texture(hdrBuffer, TexCoords + texel * vec2( 1.0f,  1.0f)).xyz;
+    vec3 cN4 = texture(hdrBuffer, TexCoords + texel * vec2( 1.0f,  1.05f)).xyz;
     cN4.rgb/=1+Luminance(cN1.rgb);
     
-    vec3 cN5 = texture(hdrBuffer, TexCoords + texel * vec2(-1.0f,  0.0f)).xyz;
+    vec3 cN5 = texture(hdrBuffer, TexCoords + texel * vec2(-1.05f,  0.0f)).xyz;
     cN5.rgb/=1+Luminance(cN1.rgb);
     vec3 cN6 = texture(hdrBuffer, TexCoords + texel * vec2( 1.0f,  0.0f)).xyz;
     cN6.rgb/=1+Luminance(cN1.rgb);
-    vec3 cN7 = texture(hdrBuffer, TexCoords + texel * vec2( 0.0f, -1.0f)).xyz;
+    vec3 cN7 = texture(hdrBuffer, TexCoords + texel * vec2( 0.0f, -1.05f)).xyz;
     cN7.rgb/=1+Luminance(cN1.rgb);
-    vec3 cN8 = texture(hdrBuffer, TexCoords + texel * vec2( 0.0f,  1.0f)).xyz;
+    vec3 cN8 = texture(hdrBuffer, TexCoords + texel * vec2( 0.05f,  1.0f)).xyz;
     cN8.rgb/=1+Luminance(cN1.rgb);
     
     // Compute color variance
