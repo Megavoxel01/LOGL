@@ -28,7 +28,7 @@
 #include <SsrResolvePass.h>
 #include <SsrCombinePass.h>
 #include <TemporalSSAAPass.h>
-#include <SsrFilterPass.h>
+#include <SsrFilterPass.h>q
 #include <IblDiffusePass.h>
 #include <IblSpecularPass.h>
 
@@ -37,7 +37,7 @@
 
 
 
-const GLuint screenWidth = 960, screenHeight = 480;
+const GLuint screenWidth = 1600, screenHeight = 900;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -121,76 +121,7 @@ GLuint loadIBL(const std::vector<const GLchar*>& faces)
 
 GLuint cubeVAO = 0;
 GLuint cubeVBO = 0;
-void RenderCube()
-{
-	// Initialize (if necessary)
-	if (cubeVAO == 0)
-	{
-		GLfloat vertices[] = {
-			// Back face
-			-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, // Bottom-left
-			0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f, // top-right
-			0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-			0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,  // top-right
-			-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,  // bottom-left
-			-0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,// top-left
-			// Front face
-			-0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom-left
-			0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,  // bottom-right
-			0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,  // top-right
-			0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // top-right
-			-0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,  // top-left
-			-0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom-left
-			// Left face
-			-0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top-right
-			-0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top-left
-			-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  // bottom-left
-			-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-left
-			-0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // bottom-right
-			-0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top-right
-			// Right face
-			0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top-left
-			0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-right
-			0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top-right         
-			0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  // bottom-right
-			0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // top-left
-			0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // bottom-left     
-			// Bottom face
-			-0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, // top-right
-			0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f, // top-left
-			0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,// bottom-left
-			0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, // bottom-left
-			-0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, // bottom-right
-			-0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, // top-right
-			// Top face
-			-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,// top-left
-			0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom-right
-			0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, // top-right     
-			0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom-right
-			-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,// top-left
-			-0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f // bottom-left        
-		};
-		glGenVertexArrays(1, &cubeVAO);
-		glGenBuffers(1, &cubeVBO);
-		// Fill buffer
-		glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-		// Link vertex attributes
-		glBindVertexArray(cubeVAO);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}
-	// Render Cube
-	glBindVertexArray(cubeVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	glBindVertexArray(0);
-}
+
 
 
 GLuint planeVBO;
@@ -319,7 +250,7 @@ int main()
 	Shader emmisiveTrace("shader/emmiTrace.vert", "shader/emmiTrace.frag");
 	int width1, height1, nrComponents1;
 	stbi_set_flip_vertically_on_load(true);
-	float *data = stbi_loadf("skybox/LA_Downtown_Helipad_GoldenHour_3k.hdr", &width1, &height1, &nrComponents1, 3);
+	float *data = stbi_loadf("skybox/sunset_fairway_4k.hdr", &width1, &height1, &nrComponents1, 3);
 
 	//ourShader.Use();
 	//glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
@@ -381,62 +312,12 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 	glBindVertexArray(0);
 
-	vector<const GLchar*> faces;
-	faces.push_back("skybox/right1.png");
-	faces.push_back("skybox/left1.png");
-	faces.push_back("skybox/top1.png");
-	faces.push_back("skybox/bottom1.png");
-	faces.push_back("skybox/back1.png");
-	faces.push_back("skybox/front1.png");
 
-	vector<const GLchar*> IBLs;
-	IBLs.push_back("cubemap1/cubemap5.png");
-	IBLs.push_back("cubemap1/cubemap4.png");
-	IBLs.push_back("cubemap1/cubemap6.png");
-	IBLs.push_back("cubemap1/cubemap2.png");
-	IBLs.push_back("cubemap1/cubemap1.png");
-	IBLs.push_back("cubemap1/cubemap3.png");
-	IBLs.push_back("cubemap1/cube_m00_c05.png");
-	IBLs.push_back("cubemap1/cube_m00_c04.png");
-	IBLs.push_back("cubemap1/cube_m00_c02.png");
-	IBLs.push_back("cubemap1/cube_m00_c03.png");
-	IBLs.push_back("cubemap1/cube_m00_c00.png");
-	IBLs.push_back("cubemap1/cube_m00_c01.png");
-	IBLs.push_back("cubemap1/cube_m01_c05.png");
-	IBLs.push_back("cubemap1/cube_m01_c04.png");
-	IBLs.push_back("cubemap1/cube_m01_c02.png");
-	IBLs.push_back("cubemap1/cube_m01_c03.png");
-	IBLs.push_back("cubemap1/cube_m01_c00.png");
-	IBLs.push_back("cubemap1/cube_m01_c01.png");
-	IBLs.push_back("cubemap1/cube_m02_c05.png");
-	IBLs.push_back("cubemap1/cube_m02_c04.png");
-	IBLs.push_back("cubemap1/cube_m02_c02.png");
-	IBLs.push_back("cubemap1/cube_m02_c03.png");
-	IBLs.push_back("cubemap1/cube_m02_c00.png");
-	IBLs.push_back("cubemap1/cube_m02_c01.png");
-	IBLs.push_back("cubemap1/cube_m03_c05.png");
-	IBLs.push_back("cubemap1/cube_m03_c04.png");
-	IBLs.push_back("cubemap1/cube_m03_c02.png");
-	IBLs.push_back("cubemap1/cube_m03_c03.png");
-	IBLs.push_back("cubemap1/cube_m03_c00.png");
-	IBLs.push_back("cubemap1/cube_m03_c01.png");
-	IBLs.push_back("cubemap1/cube_m04_c05.png");
-	IBLs.push_back("cubemap1/cube_m04_c04.png");
-	IBLs.push_back("cubemap1/cube_m04_c02.png");
-	IBLs.push_back("cubemap1/cube_m04_c03.png");
-	IBLs.push_back("cubemap1/cube_m04_c00.png");
-	IBLs.push_back("cubemap1/cube_m04_c01.png");
-	IBLs.push_back("cubemap1/cube_m05_c05.png");
-	IBLs.push_back("cubemap1/cube_m05_c04.png");
-	IBLs.push_back("cubemap1/cube_m05_c02.png");
-	IBLs.push_back("cubemap1/cube_m05_c03.png");
-	IBLs.push_back("cubemap1/cube_m05_c00.png");
-	IBLs.push_back("cubemap1/cube_m05_c01.png");
-
-	GLuint cubemapTexture = loadCubemap(faces);
+	//GLuint cubemapTexture = loadCubemap(faces);
+	GLuint cubemapTexture;
 	GLuint IBL;
 	//glGenTextures(GL_TEXTURE_2D, &IBL);
-	IBL = loadIBL(IBLs);
+	//IBL = loadIBL(IBLs);
 	struct haltonUniform {
 		float haltonNum[200];
 	}haltonUniform;
@@ -572,13 +453,13 @@ int main()
 	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("textures/Aluminum-Scuffed_metallic.png"));
 	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("textures/Aluminum-Scuffed_roughness.png"));
 	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("textures/Aluminum-Scuffed_normal.png"));*/
-	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/LIGHTGREY.png"));
-	scene->addTextureMap("buddha_d_ptr", buddha_d_ptr.get());
-	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/BLACK.png"));
-	scene->addTextureMap("buddha_s_ptr", buddha_s_ptr.get());
-	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/BLACK.png"));
-	scene->addTextureMap("buddha_r_ptr", buddha_r_ptr.get());
+	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/BLACK.png"));
+	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/Aluminum-Scuffed_metallic.png"));
+	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/Aluminum-Scuffed_metallic.png"));
 	std::unique_ptr<TextureMap> buddha_n_ptr(new TextureMap("./textures/Aluminum-Scuffed_normal.png"));
+	scene->addTextureMap("buddha_d_ptr", buddha_d_ptr.get());
+	scene->addTextureMap("buddha_s_ptr", buddha_s_ptr.get());
+	scene->addTextureMap("buddha_r_ptr", buddha_r_ptr.get());
 	scene->addTextureMap("buddha_n_ptr", buddha_n_ptr.get());
 	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/BLACK.png"));
 	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/LIGHTGREY.png"));
@@ -629,15 +510,16 @@ int main()
 	std::cout << "Loading Texture Finished\n" << std::endl;
 
 
-	//Model ourModel("box.obj");
-	RenderObject ourModel("box.obj");
+	//RenderObject ourModel("box.obj");
+	RenderObject ourModel("stanford-dragon.obj");
+	//RenderObject ourModel("testObj.obj");
 	scene->addRenderObject("ourModel", &ourModel);
 	//Model buddha("happy-buddha-webgl-sub-surface-scattering.obj");
 	ourModel.getModel().emmisive = false;
 
 	std::vector<glm::vec3> objectPositions;
-	objectPositions.push_back(glm::vec3(-3.0, -3.8, -3.0));
-	objectPositions.push_back(glm::vec3(0.0, -3.8, -3.0));
+	objectPositions.push_back(glm::vec3(-3.0, -4.05, -3.0));
+	objectPositions.push_back(glm::vec3(0.0, -4.05, -3.0));
 	//objectPositions.push_back(glm::vec3(3.0, -4.1, -3.0));
 	//objectPositions.push_back(glm::vec3(-3.0, -4.1, 0.0));
 	//objectPositions.push_back(glm::vec3(0.0, -4.1, 0.0));
@@ -911,8 +793,8 @@ int main()
 		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
 		projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 200] * 2 - 1;
 		projection[2][1] = haltonUniform.haltonNum[(int)(currentFrameIndex + 15) % 200] * 2 - 1;
-		projection[2][0] /= screenWidth * 64;
-		projection[2][1] /= screenHeight * 64;
+		projection[2][0] /= screenWidth * 3;
+		projection[2][1] /= screenHeight * 3;
 
 		fov2projection = glm::perspective(camera.Zoom * 2, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
 		fov2projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 999] * 2 - 1; 
@@ -921,7 +803,7 @@ int main()
 		fov2projection[2][1] /= screenHeight * 64;
 
 
-		view = camera.GetViewMatrix();
+		view = camera.GetViewMatrix(); 
 		
 		gBufferPass.update(view, projection, objectPositions);
 		gBufferPass.execute();

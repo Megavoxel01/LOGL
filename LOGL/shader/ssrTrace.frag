@@ -838,7 +838,7 @@ bool trace_ray(
 }
 
 /////////////////////////////////////////
-#define MAX_ITERATIONS 40
+#define MAX_ITERATIONS 45
 #define HIZ_START_LEVEL 1
 #define HIZ_STOP_LEVEL 0
 #define HIZ_MAX_LEVEL 6

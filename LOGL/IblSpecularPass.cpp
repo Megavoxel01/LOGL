@@ -86,7 +86,7 @@ void IblSpecularPass::update() {
 	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-	unsigned int maxMipLevels = 5;
+	unsigned int maxMipLevels = 8;
 	for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
 	{
 		// reisze framebuffer according to mip-level size.

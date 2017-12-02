@@ -68,7 +68,7 @@ void GBufferPass::execute() {
 		ourModel->getModel().Draw(shaderGeometryPass);
 	}
 	model = glm::mat4();
-	model = glm::translate(model, glm::vec3(3.0, -3.8, -3.0));
+	model = glm::translate(model, glm::vec3(3.0, -4.05, -3.0));
 	model = glm::scale(model, glm::vec3(0.15f));
 	shaderGeometryPass.SetUniform("model", model);
 	shaderGeometryPass.SetUniform("projection", projection);
@@ -89,7 +89,7 @@ void GBufferPass::execute() {
 	shaderGeometryPass.SetUniform("projection", projection);
 	shaderGeometryPass.SetUniform("view", view);
 	flagGloss = 1;
-	flagMetallic = 1;
+	flagMetallic = 0;
 	shaderGeometryPass.SetUniform("flagGloss", flagGloss);
 	shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
 	//shaderGeometryPass.SetUniform("tempRoughness", tempRoughness);

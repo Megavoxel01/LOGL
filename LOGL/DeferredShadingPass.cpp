@@ -79,7 +79,8 @@ void DeferredShadingPass::update(
 	shaderLightingPass.SetUniform("screenHeight", (float)mHeight);
 	shaderLightingPass.SetUniform("numberOfTilesX", mWorkGroupsX);
 	shaderLightingPass.SetUniform("directionLightDir", glm::vec3(0, 1, 1));
-	shaderLightingPass.SetUniform("directionLightColor", glm::vec4(245.0/256.0, 208.0/256.0, 129.0/256.0, 1));
+	shaderLightingPass.SetUniform("directionLightColor", glm::vec4(0,0,0,1));
+	//shaderLightingPass.SetUniform("directionLightColor", glm::vec4(245.0/256.0, 208.0/256.0, 129.0/256.0, 1));
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gSpecular->textureID);
