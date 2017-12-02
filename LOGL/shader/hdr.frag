@@ -46,14 +46,14 @@ void main()
 	//vec3 curr=FilmicToneMapping(exBias*hdrColor);
 	//vec3 whiteScale=1.0f/FilmicToneMapping(vec3(W));
 	//curr*=whiteScale;
-    vec3 curr=ACESToneMapping(hdrColor, 0.35f);
+    vec3 curr=ACESToneMapping(hdrColor, 0.25f);
 
     // exposure
     //vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
     // also gamma correct while we're at it       
     //result = pow(result, vec3(1.0f / gamma));
     //color = hdr?vec4(result, 1.0f):vec4(hdrColor,1.0f);
-    //curr = pow(curr, vec3(1/gamma));
+    curr = pow(curr, vec3(1/gamma));
     color = vec4(curr,1.0f);
 
     //color=previous;
