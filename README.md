@@ -1,7 +1,7 @@
 ![GitHub Logo](/1.jpg)
 # LOGL
 Personal rendering playground.  
-Base framework is currently heavy refactoring.
+Base framework is currently under heavy refactoring.
 
 ## Implemented feature  
 Tiled deferred shading  
