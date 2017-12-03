@@ -1,6 +1,7 @@
 ![GitHub Logo](/1.jpg)
 # LOGL
-Personel rendering playground.  
+Personal rendering playground.  
+Base framework is under major refactoring.
 
 ## Implemented feature  
 Tiled deferred shading  
