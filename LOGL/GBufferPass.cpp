@@ -63,13 +63,13 @@ void GBufferPass::execute() {
 	{
 		model = glm::mat4();
 		model = glm::translate(model, objectPositions[i]);
-		model = glm::scale(model, glm::vec3(0.15f));
+		model = glm::scale(model, glm::vec3(1.15f));
 		shaderGeometryPass.SetUniform("model", model);
 		ourModel->getModel().Draw(shaderGeometryPass);
 	}
 	model = glm::mat4();
 	model = glm::translate(model, glm::vec3(3.0, -4.05, -3.0));
-	model = glm::scale(model, glm::vec3(0.15f));
+	model = glm::scale(model, glm::vec3(1.15f));
 	shaderGeometryPass.SetUniform("model", model);
 	shaderGeometryPass.SetUniform("projection", projection);
 	shaderGeometryPass.SetUniform("view", view);

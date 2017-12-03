@@ -140,7 +140,7 @@ private:
 			else
 			{
 				vertex.TexCoords = glm::vec2(0.0f, 0.0f);
-				std::cout << "No texcoord!" << std::endl;
+				//std::cout << "No texcoord!" << std::endl;
 			}
                 
 			if (mesh->HasTangentsAndBitangents())
@@ -156,12 +156,13 @@ private:
 				vector.y = mesh->mBitangents[i].y;
 				vector.z = mesh->mBitangents[i].z;
 				vertex.Bitangent = vector;
-				vertices.push_back(vertex);
+				
 			}
 			else
 			{
-				std::cout << "No tangent and bitangent!" << std::endl;
+				//std::cout << "No tangent and bitangent!" << std::endl;
 			}
+			vertices.push_back(vertex);
             
         }
         // Now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
