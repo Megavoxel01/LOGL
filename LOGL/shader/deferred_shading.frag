@@ -352,7 +352,7 @@ void main()
 
     vec3 irradiance = texture(irradianceMap, wsNormal).rgb;
     irradiance *=vec3(1.0) - SchlickFresnel(vsLDir,vsViewDir, vsNormal, Gloss, Specular);
-    lighting += Albedo * irradiance;
+    lighting += Albedo * irradiance*0.1;
 
 
 

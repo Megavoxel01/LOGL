@@ -250,7 +250,7 @@ int main()
 	Shader emmisiveTrace("shader/emmiTrace.vert", "shader/emmiTrace.frag");
 	int width1, height1, nrComponents1;
 	stbi_set_flip_vertically_on_load(true);
-	float *data = stbi_loadf("skybox/sunset_fairway_4k.hdr", &width1, &height1, &nrComponents1, 3);
+	float *data = stbi_loadf("skybox/paul_lobe_haus_4k.hdr", &width1, &height1, &nrComponents1, 3);
 
 	//ourShader.Use();
 	//glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
