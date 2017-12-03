@@ -95,32 +95,13 @@ void GBufferPass::execute() {
 	//shaderGeometryPass.SetUniform("tempRoughness", tempRoughness);
 
 
-	float aniso = 0.0f;
+	
 	bool flagAniso = true;
 	shaderGeometryPass.BindTexture(0, scene->getTextureMap("floor_d_ptr")->textureID, "material.texture_diffuse1");
-	if (flagAniso)
-	{
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-	}
 	shaderGeometryPass.BindTexture(1, scene->getTextureMap("floor_s_ptr")->textureID, "material.texture_specular1");
-	if (flagAniso)
-	{
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-	}
 	shaderGeometryPass.BindTexture(2, scene->getTextureMap("floor_n_ptr")->textureID, "material.texture_normal1");
-	if (flagAniso)
-	{
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-	}
 	shaderGeometryPass.BindTexture(3, scene->getTextureMap("floor_r_ptr")->textureID, "material.texture_roughness1");
-	if (flagAniso)
-	{
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-	}
+
 	//glCullFace(GL_FRONT);
 	glDisable(GL_CULL_FACE);
 	RenderQuad();

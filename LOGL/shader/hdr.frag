@@ -46,7 +46,7 @@ void main()
 	//vec3 curr=FilmicToneMapping(exBias*hdrColor);
 	//vec3 whiteScale=1.0f/FilmicToneMapping(vec3(W));
 	//curr*=whiteScale;
-    vec3 curr=ACESToneMapping(hdrColor, 0.03f);
+    vec3 curr=ACESToneMapping(hdrColor, 0.08f);
 
     // exposure
     //vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
@@ -58,4 +58,4 @@ void main()
 
     //color=previous;
     //color.xyz/=1-Luminance(color.xyz);
-}
+} 
