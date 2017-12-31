@@ -228,5 +228,11 @@
     <ClInclude Include="IblSpecularPass.h">
       <Filter>头文件\LOGL</Filter>
     </ClInclude>
+    <ClInclude Include="ScreenSpaceAO.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowMapping.h">
+      <Filter>头文件\LOGL</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -141,6 +141,8 @@
     <ClInclude Include="RenderObject.h" />
     <ClInclude Include="RenderPass.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="ScreenSpaceAO.h" />
+    <ClInclude Include="ShadowMapping.h" />
     <ClInclude Include="SsrCombinePass.h" />
     <ClInclude Include="SsrFilterPass.h" />
     <ClInclude Include="SsrResolvePass.h" />
