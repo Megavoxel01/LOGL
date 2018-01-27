@@ -50,6 +50,7 @@ void GBufferPass::execute() {
 	shaderGeometryPass.SetUniform("model", model);
 	shaderGeometryPass.SetUniform("flagGloss", flagGloss);
 	shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
+	shaderGeometryPass.SetUniform("hasNormal", false);
 	//shaderGeometryPass.BindTexture(0, teath_d_ptr->textureID, "material.texture_diffuse1");
 	//shaderGeometryPass.BindTexture(1, teath_s_ptr->textureID, "material.texture_specular1");
 	//shaderGeometryPass.BindTexture(2, teath_n_ptr->textureID, "material.texture_normal1");
@@ -63,19 +64,20 @@ void GBufferPass::execute() {
 	{
 		model = glm::mat4();
 		model = glm::translate(model, objectPositions[i]);
-		model = glm::scale(model, glm::vec3(1.15f));
+		model = glm::scale(model, glm::vec3(0.15f));
 		shaderGeometryPass.SetUniform("model", model);
 		ourModel->getModel().Draw(shaderGeometryPass);
 	}
 	model = glm::mat4();
 	model = glm::translate(model, glm::vec3(3.0, -4.05, -3.0));
-	model = glm::scale(model, glm::vec3(1.15f));
+	model = glm::scale(model, glm::vec3(0.15f));
 	shaderGeometryPass.SetUniform("model", model);
 	shaderGeometryPass.SetUniform("projection", projection);
 	shaderGeometryPass.SetUniform("view", view);
 	shaderGeometryPass.SetUniform("model", model);
 	shaderGeometryPass.SetUniform("flagGloss", flagGloss);
 	shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
+	shaderGeometryPass.SetUniform("hasNormal", false);
 	//shaderGeometryPass.BindTexture(0, buddha_d_ptr->textureID, "material.texture_diffuse1");
 	//shaderGeometryPass.BindTexture(1, buddha_s_ptr->textureID, "material.texture_specular1");
 	//shaderGeometryPass.BindTexture(2, buddha_n_ptr->textureID, "material.texture_normal1");
@@ -88,10 +90,11 @@ void GBufferPass::execute() {
 	shaderGeometryPass.SetUniform("model", model);
 	shaderGeometryPass.SetUniform("projection", projection);
 	shaderGeometryPass.SetUniform("view", view);
-	flagGloss = 1;
-	flagMetallic = 0;
+	flagGloss = 0;
+	flagMetallic = 1;
 	shaderGeometryPass.SetUniform("flagGloss", flagGloss);
 	shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
+	shaderGeometryPass.SetUniform("hasNormal", true);
 	//shaderGeometryPass.SetUniform("tempRoughness", tempRoughness);
 
 

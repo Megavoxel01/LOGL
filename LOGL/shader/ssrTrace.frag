@@ -188,7 +188,7 @@ vec4 TangentToWorld(vec3 N, vec4 H)
     return vec4((T * H.x) + (B * H.y) + (N * H.z), H.w);
 }
 
-
+// from UE4
 vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
 {
     float m = Roughness * Roughness;
@@ -205,7 +205,7 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
     H.z = CosTheta;
         
     float d = (CosTheta * m2 - CosTheta) * CosTheta + 1;
-    float D = m2 / max((PI * d * d), 1e-5);
+    float D = m2 / (PI * d * d);
     float pdf = D * CosTheta;
 
     return vec4(H, pdf); 
@@ -839,7 +839,7 @@ bool trace_ray(
 
 /////////////////////////////////////////
 #define MAX_ITERATIONS 45
-#define HIZ_START_LEVEL 1
+#define HIZ_START_LEVEL 0
 #define HIZ_STOP_LEVEL 0
 #define HIZ_MAX_LEVEL 6
 vec2 cell(vec2 ray, vec2 cell_count, uint camera) {
@@ -929,7 +929,8 @@ bool trace_ray_HIZ(
     float originalDepth=textureLod(sceneDepth, ray.xy, 0).r;
 
     vec2 cross_step = vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
-    vec2 cross_offset = cross_step * 0.0001;
+    //vec2 cross_offset = cross_step * 0.0005;
+    vec2 cross_offset = cross_step * vec2(1.0f/screenWidth, 1.0f/screenHeight) * 0.5f;
   //cross_step = saturate(cross_step);
     cross_step = clamp(cross_step, 0.0, 1.0);
 
@@ -951,31 +952,37 @@ bool trace_ray_HIZ(
         vec3 tmp_ray = ray;
         if(v.z > 0) 
         {
+            //ray.z += ray.z * .000004f;
             float min_minus_ray = min_z - ray.z;
             //if(abs(min_minus_ray)<1e-3) hitFlag=1;
-            tmp_ray = min_minus_ray > 1e-6  ? ray + v_z*min_minus_ray : tmp_ray;
+            tmp_ray = min_minus_ray > 0  ? ray + v_z*min_minus_ray : tmp_ray;
             vec2 new_cell_id = cell(tmp_ray.xy, current_cell_count, camera);
             if(crossed_cell_boundary(old_cell_id, new_cell_id)) 
             //if(false) 
             {
                 tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
                 level = min(HIZ_MAX_LEVEL, level + 2.0f);
-            }else{
+                //cross_offset*=2.0f;
+            }
+            else
+            {
 
-                if(level == 0 && abs(min_minus_ray) < 1e-4)
+                if(level == 1 && abs(min_minus_ray) < 1e-4)
                 //if(false) 
                 {
                     hitFlag=1;
                     break;
-                    tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
-                    level = 0;
+                    
                 }
+                //tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
+                //level = 0;
+                cross_offset/=2.0f;
             }
         }
         else if(ray.z < min_z)
         //else if(false) 
         {
-            if(abs(ray.z - min_z) <= 1e-6){
+            if(abs(ray.z - min_z) < 1e-6){
                 hitFlag = 1;
                 break;
             }
@@ -1074,7 +1081,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
         //dir=normalize(reflect(normalize(vsPosition.xyz),normalize(vsNormal.xyz)));
         //return vec4(normalize(dir),1);
 
-        bool isHit=trace_ray_HIZ(vsPosition.xyz+vsNormal*0.001,
+        bool isHit=trace_ray_HIZ(vsPosition.xyz+vsNormal*0.002,
             dir,
             ProjectionMatrix,
             sceneDepth,

@@ -93,6 +93,45 @@ vec2(1.0f, 0.0f),
 vec2(-2.0f, -3.0f),
 vec2(1.0f, -3.0f)
     );
+
+/*
+const vec2 offset[28]=vec2[](
+vec2(0, 0),
+vec2(-1.0f, 1.0f),
+vec2(-1.0f, 0.0f),
+vec2(0, 1.0f),
+
+vec2(1.0f, 0.0f),
+vec2(1.0f, 0.0f),
+vec2(1.0f, -1.0f),
+vec2(1.0f, -1.0f),
+
+vec2(0.0f, 1.0f),
+vec2(-1.0f, 1.0f),
+vec2(0, -1.0f),
+vec2(0, 1.0f),
+
+vec2(-1.0f, 1.0f),
+vec2(-1.0f, 0.0f),
+vec2(0.0f, 1.0f),
+vec2(0.0f, 0),
+
+vec2(-1.0f, 0.0f),
+vec2(0.0f, 0.0f),
+vec2(0.0f, -1.0f),
+vec2(-1.0f, -1.0f),
+
+vec2(1.0f, 1.0f),
+vec2(2.0f, 1.0f),
+vec2(1.0f, -1.0f),
+vec2(2.0f, -1.0f),
+
+vec2(-1.0f, 0.0f),
+vec2(1.0f, 0.0f),
+vec2(-1.0f, -1.0f),
+vec2(1.0f, -1.0f)
+    );
+*/
 #define point2 vec2
 #define point3 vec3
 

@@ -190,8 +190,8 @@ void main()
     vec3 m2 = cN1*cN1 + cN2*cN2 + cN3*cN3 + cN4*cN4 + cN5*cN5 + cN6*cN6 + cN7*cN7 + cN8*cN8 + cCenter*cCenter;
     vec3 mean = m1 / 9;
     vec3 stddev = sqrt(m2 / 9 - mean * mean);
-    vec3 cMin = mean - 0.5 * stddev;
-    vec3 cMax = mean + 0.5 * stddev;
+    vec3 cMin = mean - 30.5 * stddev;
+    vec3 cMax = mean + 30.5 * stddev;
     
     vec4 cHistory = texture(prevSSR1, prevUV);
     cHistory.rgb/=1+Luminance(cHistory.rgb);

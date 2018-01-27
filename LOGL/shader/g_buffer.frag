@@ -11,6 +11,7 @@ in mat3 TBN;
 uniform bool flagMetallic;
 uniform bool flagGloss;
 uniform float tempRoughness;
+uniform bool hasNormal;
 struct Material
 {
 	
@@ -27,8 +28,12 @@ void main()
 {    
 
     //gSpecular = FragPos;
+    if (hasNormal == false){
+        gNormal.rgb = normalize(Normal);
+    }else{
+        gNormal.rgb = (texture2D(material.texture_normal1, TexCoords).xyz * 2.0 - 1.0) * TBN;
+    }
     
-    gNormal.rgb = (texture2D(material.texture_normal1, TexCoords).xyz * 2.0 - 1.0) * TBN;
     float roughness=texture(material.texture_roughness1, TexCoords).r;
     if(flagGloss)    
         gNormal.a=1.05f-roughness;

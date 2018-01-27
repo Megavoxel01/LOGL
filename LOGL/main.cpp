@@ -469,14 +469,14 @@ int main()
 	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/iron-rusted4-metalness.png"));
 	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/iron-rusted4-roughness_1.png"));
 	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/iron-rusted4-normal.png"));
-	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
-	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
-	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
-	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
-	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/mat0_c.jpg"));
+	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
 	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
-	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/mat0_g.jpg"));
-	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/mat0_n.jpg"));
+	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
+	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
+	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/mat0_c.jpg"));
+	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/mat0_g.jpg"));
+	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/mat0_n.jpg"));
 	//std::unique_ptr<TextureMap> planeNormal(new TextureMap("./textures/greasy-metal-pan1-normal.png"));
 	std::unique_ptr<TextureMap> planeNormal(new TextureMap("textures/Aluminum-Scuffed_normal.png"));
 
@@ -511,8 +511,8 @@ int main()
 
 
 	//RenderObject ourModel("box.obj");
-	//RenderObject ourModel("stanford-dragon.obj");
-	RenderObject ourModel("dragon.obj");
+	RenderObject ourModel("stanford-dragon.obj");
+	//RenderObject ourModel("dragon.obj");
 	scene->addRenderObject("ourModel", &ourModel);
 	//Model buddha("happy-buddha-webgl-sub-surface-scattering.obj");
 	ourModel.getModel().emmisive = false;
@@ -542,7 +542,7 @@ int main()
 	err = glGetError();
 	//gbuffer depth
 
-	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
 	scene->addTextureMap("rboDepth", &rboDepth);
 
 	//shadow
@@ -793,8 +793,8 @@ int main()
 		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
 		projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 200] * 2 - 1;
 		projection[2][1] = haltonUniform.haltonNum[(int)(currentFrameIndex + 15) % 200] * 2 - 1;
-		projection[2][0] /= screenWidth * 3;
-		projection[2][1] /= screenHeight * 3;
+		projection[2][0] /= screenWidth * 4;
+		projection[2][1] /= screenHeight * 4;
 
 		fov2projection = glm::perspective(camera.Zoom * 2, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
 		fov2projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 999] * 2 - 1; 
@@ -927,7 +927,7 @@ int main()
 			TAAresponse,
 			flagTemporal
 			);
-		ssrFilterPass.execute();
+		//ssrFilterPass.execute();
 
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
