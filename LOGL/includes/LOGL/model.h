@@ -30,6 +30,7 @@ public:
     string directory;
     bool gammaCorrection;
 	bool emmisive = false;
+	bool hasNormal = false;
 
     /*  Functions   */
     // Constructor, expects a filepath to a 3D model.
