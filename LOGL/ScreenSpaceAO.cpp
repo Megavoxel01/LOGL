@@ -106,6 +106,7 @@ void ScreenSpaceAO::execute()
 	shaderGTAOTemporal.SetUniform("projInfo", projinfo);
 	shaderGTAOTemporal.SetUniform("inverseViewMatrix", glm::inverse(view));
 	shaderGTAOTemporal.SetUniform("inverseProjectionMatrix", glm::inverse(projection));
+	shaderGTAOTemporal.SetUniform("inversePreProjectionMatrix", glm::inverse(previousProjection));
 	shaderGTAOTemporal.SetUniform("preProjectionMatrix", previousProjection);
 	shaderGTAOTemporal.SetUniform("clipPlanes", clip);
 	shaderGTAOTemporal.SetUniform("frameIndex", frameIndex);
