@@ -16,9 +16,12 @@ private:
 	Scene *scene;
 	Framebuffer gBuffer;
 	TextureMap* gSpecular;
+	TextureMap* gViewPosition;
 	TextureMap* gNormal;
 	TextureMap* gAlbedoSpec;
 	TextureMap* rboDepth;
+	TextureMap* rboDepthPrev;
+	TextureMap* gViewPositionPrev;
 	glm::mat4 view;
 	glm::mat4 projection;
 

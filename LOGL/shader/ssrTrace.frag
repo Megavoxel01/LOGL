@@ -49,6 +49,11 @@ layout (std430, binding=1) buffer shader_data
 { 
     float haltonNum[200];
 };
+
+layout (std430, binding=4) buffer debugSsr
+{ 
+    vec4 samplePosition[50];
+};
 //float screenWidth=1900;
 //float screenHeight=1000;
 float near=0.01f;
@@ -205,7 +210,7 @@ vec4 ImportanceSampleGGX(vec2 Xi, float Roughness)
     H.z = CosTheta;
         
     float d = (CosTheta * m2 - CosTheta) * CosTheta + 1;
-    float D = m2 / (PI * d * d);
+    float D = m2 / max((PI * d * d), 1e-5);;
     float pdf = D * CosTheta;
 
     return vec4(H, pdf); 
@@ -955,7 +960,7 @@ bool trace_ray_HIZ(
             //ray.z += ray.z * .000004f;
             float min_minus_ray = min_z - ray.z;
             //if(abs(min_minus_ray)<1e-3) hitFlag=1;
-            tmp_ray = min_minus_ray > 0  ? ray + v_z*min_minus_ray : tmp_ray;
+            tmp_ray = min_minus_ray > 1e-6  ? ray + v_z*min_minus_ray : tmp_ray;
             vec2 new_cell_id = cell(tmp_ray.xy, current_cell_count, camera);
             if(crossed_cell_boundary(old_cell_id, new_cell_id)) 
             //if(false) 
@@ -967,22 +972,22 @@ bool trace_ray_HIZ(
             else
             {
 
-                if(level == 1 && abs(min_minus_ray) < 1e-4)
+                if(level == 0 && abs(min_minus_ray) < 1e-4)
                 //if(false) 
                 {
                     hitFlag=1;
                     break;
-                    
+                    tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
+                    level = 0;
                 }
-                //tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset, camera);
-                //level = 0;
-                cross_offset/=2.0f;
+
+                //cross_offset/=2.0f;
             }
         }
         else if(ray.z < min_z)
         //else if(false) 
         {
-            if(abs(ray.z - min_z) < 1e-6){
+            if(abs(ray.z - min_z) <= 1e-6){
                 hitFlag = 1;
                 break;
             }
@@ -991,6 +996,15 @@ bool trace_ray_HIZ(
         }
 
         ray.xyz = tmp_ray.xyz;
+        if( ray.x > 0.49f && ray.x <0.50f && ray.y > 0.49f && ray.y< 0.50f)
+        {
+            vec3 tempRay = ray.xyz;
+            tempRay.xy = tempRay.xy*2-1;
+            samplePosition[iterations].xy = tempRay.xy;
+
+            samplePosition[iterations].zw = vec2(1.0f);
+        }
+            
         --level;
 
         ++iterations;
@@ -1019,7 +1033,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
     //vec3 vsReflectionVector=normalize(reflect(vsPosition,vsNormal));
     //vec3 wsReflectionVector=normalize(reflect(wsPosition,wsNormal));
     vec3 BRDF=vec3(0);
-    float pdf=1;
+    float pdf=0;
     float debug;
     vec4 hitPoint_WS=vec4(-10000);
     vec2 prevUV=vec2(-2.5,-2.5);
@@ -1043,7 +1057,8 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
         float _random2=rand(TexCoords-0.0301f);
         int index1=int(_random1*100);
         int index2=int(_random2*100);
-        vec2 jitter=vec2(mix(haltonNum[index1%99],1.0,sampleBias),haltonNum[index2%99]);
+        //vec2 jitter=vec2(mix(haltonNum[index1%99],1.0,sampleBias),haltonNum[index2%99]);
+        vec2 jitter=vec2(mix(haltonNum[int(TexCoords.x)%99],1.0,sampleBias),haltonNum[int(TexCoords.y)%99]);
         //vec2 jitter;
         //jitter.x = texture(blueNoise, TexCoords).x;
         //jitter.y = texture(blueNoise, TexCoords+vec2(_random1)/vec2(screenWidth, screenHeight)).x;
@@ -1058,7 +1073,8 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
         float ii=0;
 
         flag=0;
-        while(dot(dir,vsNormal)<1e-5)
+        //while(dot(dir,vsNormal)<1e-5)
+        while(false)
         {
             _random1=rand(TexCoords*_random1);
             _random2=rand(TexCoords*_random2-0.0301f*ii);
@@ -1081,7 +1097,7 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
         //dir=normalize(reflect(normalize(vsPosition.xyz),normalize(vsNormal.xyz)));
         //return vec4(normalize(dir),1);
 
-        bool isHit=trace_ray_HIZ(vsPosition.xyz+vsNormal*0.002,
+        bool isHit=trace_ray_HIZ(vsPosition.xyz+vsNormal*0.001,
             dir,
             ProjectionMatrix,
             sceneDepth,
@@ -1114,9 +1130,9 @@ vec4 SSRef2(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
                 //SSRHitPixel=vec4(-1,-1,-1,pdf);
                 return vec4(vec3(-100000),-1);
             }
-            pdf=1;
+            pdf=0;
             float IL=0;     
-            BRDF=SsrBRDF(viewDir,(inverseViewMatrix*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
+            //BRDF=SsrBRDF(viewDir,(inverseViewMatrix*vec4(hitPoint-vsPosition.xyz,0)).xyz,wsNormal,roughness,specStrength,pdf,IL);
             pdf = H.w;
             return vec4(hitPoint_WS.xyz,pdf);
         }

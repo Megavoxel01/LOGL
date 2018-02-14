@@ -28,9 +28,10 @@
 #include <SsrResolvePass.h>
 #include <SsrCombinePass.h>
 #include <TemporalSSAAPass.h>
-#include <SsrFilterPass.h>q
+#include <SsrFilterPass.h>
 #include <IblDiffusePass.h>
 #include <IblSpecularPass.h>
+#include <ScreenSpaceAO.h>
 
 
 
@@ -248,9 +249,10 @@ int main()
 	Shader convolve("shader/convolve.vert", "shader/convolve.frag");
 	Shader emmisiveBuffer("shader/emmisive.vert", "shader/emmisive.frag");
 	Shader emmisiveTrace("shader/emmiTrace.vert", "shader/emmiTrace.frag");
+	Shader debugSsrShader("shader/ssrDebug.vert", "shader/ssrDebug.frag", "shader/ssrDebug.geom");
 	int width1, height1, nrComponents1;
 	stbi_set_flip_vertically_on_load(true);
-	float *data = stbi_loadf("skybox/sunset_fairway_4k.hdr", &width1, &height1, &nrComponents1, 3);
+	float *data = stbi_loadf("skybox/Ditch-River_2k.hdr", &width1, &height1, &nrComponents1, 3);
 
 	//ourShader.Use();
 	//glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
@@ -264,7 +266,7 @@ int main()
 		1.0f*scale, -1.0f*scale, -1.0f*scale,
 		1.0f*scale, -1.0f*scale, -1.0f*scale,
 		1.0f*scale, 1.0f*scale, -1.0f*scale,
-		-1.0f*scale, 1.0f*scale, -1.0f*scale,
+		-1.0f*scale, 1.0f*scale, -1.0f*scale,  
 
 		-1.0f, -1.0f, 1.0f,
 		-1.0f, -1.0f, -1.0f,
@@ -321,6 +323,10 @@ int main()
 	struct haltonUniform {
 		float haltonNum[200];
 	}haltonUniform;
+
+	struct DebugSsr {
+		float sample[200];
+	}debugSsr;
 
 	const GLuint NR_LIGHTS = 10;
 	struct Light {
@@ -385,6 +391,13 @@ int main()
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, visibleLightIndexSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	GLuint debugSsrSSBO = 0;
+	glGenBuffers(1, &debugSsrSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, debugSsrSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(DebugSsr), &debugSsr, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, debugSsrSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 	emmisiveTrace.Use();
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gSpecular"), 0);
 	glUniform1i(glGetUniformLocation(emmisiveTrace.Program, "gNormal"), 1);
@@ -416,7 +429,7 @@ int main()
 
 	toScreen.Use();
 	glUniform1i(glGetUniformLocation(toScreen.Program, "hdrBuffer"), 0);
-	glUniform1i(glGetUniformLocation(toScreen.Program, "sceneDepth"), 1);
+	glUniform1i(glGetUniformLocation(toScreen.Program, "debugBuffer"), 1);
 
 	convolve.Use();
 	glUniform1i(glGetUniformLocation(convolve.Program, "LastMip"), 0);
@@ -453,9 +466,9 @@ int main()
 	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("textures/Aluminum-Scuffed_metallic.png"));
 	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("textures/Aluminum-Scuffed_roughness.png"));
 	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("textures/Aluminum-Scuffed_normal.png"));*/
-	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/BLACK.png"));
-	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/Aluminum-Scuffed_metallic.png"));
-	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/Aluminum-Scuffed_metallic.png"));
+	std::unique_ptr<TextureMap> buddha_d_ptr(new TextureMap("./textures/white.png"));
+	std::unique_ptr<TextureMap> buddha_s_ptr(new TextureMap("./textures/BLACK.png"));
+	std::unique_ptr<TextureMap> buddha_r_ptr(new TextureMap("./textures/BLACK.png"));
 	std::unique_ptr<TextureMap> buddha_n_ptr(new TextureMap("./textures/Aluminum-Scuffed_normal.png"));
 	scene->addTextureMap("buddha_d_ptr", buddha_d_ptr.get());
 	scene->addTextureMap("buddha_s_ptr", buddha_s_ptr.get());
@@ -469,10 +482,19 @@ int main()
 	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/iron-rusted4-metalness.png"));
 	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/iron-rusted4-roughness_1.png"));
 	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/iron-rusted4-normal.png"));
-	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
-	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
-	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
-	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
+	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
+	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/oakfloor_roughness_1_1.png"));
+	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/oakfloor_normal.png"));
+	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/oakfloor_basecolor.png"));
+	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
+	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/Aluminum-Scuffed_metallic.png"));
+	//std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/Aluminum-Scuffed_normal.png"));
+
+	std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/white.png"));
+	std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/BLACK.png"));
+	std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/BLACK.png"));
+	std::unique_ptr<TextureMap> floor_n_ptr(new TextureMap("./textures/Aluminum-Scuffed_normal.png"));
 	//std::unique_ptr<TextureMap> floor_d_ptr(new TextureMap("./textures/mat0_c.jpg"));
 	//std::unique_ptr<TextureMap> floor_s_ptr(new TextureMap("./textures/oakfloor_Metallic.png"));
 	//std::unique_ptr<TextureMap> floor_r_ptr(new TextureMap("./textures/mat0_g.jpg"));
@@ -495,17 +517,14 @@ int main()
 	//glGenTextures(1, &BRDFLut);
 	int width, height, bpp;
 	unsigned char* image = stbi_load("./textures/PreIntegratedGF.png", &width, &height, &bpp, 3);
-	//glBindTexture(GL_TEXTURE_2D, BRDFLut);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-	//glGenerateMipmap(GL_TEXTURE_2D);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glBindTexture(GL_TEXTURE_2D, 0);
 	TextureMap BRDFLut(width, height, GL_RGB32F, GL_RGB, GL_UNSIGNED_BYTE, image, GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
+	unsigned char* ssaoNormal = stbi_load("./textures/ssaonormal.png", &width, &height, &bpp, 3);
+	TextureMap ssaoNormalImage(width, height, GL_RGB32F, GL_RGB, GL_UNSIGNED_BYTE, ssaoNormal, GL_REPEAT, GL_REPEAT, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR);
+	
 	scene->addTextureMap("BRDFLut", &BRDFLut);
+	scene->addTextureMap("ssaoNormalImage", &ssaoNormalImage);
 	stbi_image_free(image);
+	stbi_image_free(ssaoNormal);
 
 	std::cout << "Loading Texture Finished\n" << std::endl;
 
@@ -531,19 +550,26 @@ int main()
 	
 	//Framebuffer gBuffer;
 	//gBuffer.Bind();
-
 	TextureMap gSpecular(screenWidth, screenHeight, GL_RGB32F, GL_RGB, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	TextureMap gNormal(screenWidth, screenHeight, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
-	TextureMap gAlbedoSpec(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	TextureMap gNormal(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	TextureMap gAlbedoSpec(screenWidth, screenHeight, GL_RGB16F, GL_RGB, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	TextureMap gViewPosition(screenWidth, screenHeight, GL_R32F, GL_RED, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+	TextureMap gViewPositionPrev(screenWidth, screenHeight, GL_R32F, GL_RED, GL_FLOAT, NULL, GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 	scene->addTextureMap("gSpecular", &gSpecular);	
-	scene->addTextureMap("gNormal", &gNormal);	
+	scene->addTextureMap("gNormal", &gNormal);
 	scene->addTextureMap("gAlbedoSpec", &gAlbedoSpec);
+	scene->addTextureMap("gViewPosition", &gViewPosition);
+	scene->addTextureMap("gViewPositionPrev", &gViewPositionPrev);
 
-	err = glGetError();
+	
 	//gbuffer depth
 
-	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT);
+	TextureMap rboDepth(screenWidth, screenHeight, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 	scene->addTextureMap("rboDepth", &rboDepth);
+
+	TextureMap rboDepthPrev(screenWidth, screenHeight, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, NULL, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+	scene->addTextureMap("rboDepthPrev", &rboDepthPrev);
+
 
 	//shadow
 	Framebuffer depthMapFBO;
@@ -592,6 +618,17 @@ int main()
 	SSRColorFBO.Unbind();
 	TextureMap prevSSR1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT);
 	scene->addTextureMap("prevSSR1", &prevSSR1);
+
+	TextureMap ssaoColor(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	scene->addTextureMap("ssaoColor", &ssaoColor);
+
+	TextureMap ssaoColorPrev1(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	scene->addTextureMap("ssaoColorPrev1", &ssaoColorPrev1);
+
+	TextureMap ssaoAccum(screenWidth, screenHeight, GL_RGBA16F, GL_RGBA, GL_FLOAT, NULL, GL_NEAREST, GL_LINEAR, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	scene->addTextureMap("ssaoAccum", &ssaoAccum);
+	
+
 
 	Framebuffer prevFrameFBO;
 	prevFrameFBO.Bind();
@@ -648,6 +685,9 @@ int main()
 
 	SsrCombinePass ssrCombinePass(scene.get());
 	ssrCombinePass.init();
+	
+	ScreenSpaceAO screenSpaceAo(screenWidth, screenHeight, scene.get());
+	screenSpaceAo.init();
 
 	TemporalSsaaPass temporalSsaaPass(screenWidth, screenHeight, scene.get());
 	temporalSsaaPass.init();
@@ -709,6 +749,21 @@ int main()
 	GLuint64 startTime, stopTime;
 	unsigned int queryID[2];
 
+	float points[] = {
+		-0.5f,  0.5f, 1.0f, 0.0f, 0.0f // top-left
+	};
+	unsigned int ssrVBO, ssrVAO;
+	glGenBuffers(1, &ssrVBO);
+	glGenVertexArrays(1, &ssrVAO);
+	glBindVertexArray(ssrVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, ssrVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+	glBindVertexArray(0);
+
 	// generate two queries
 	glGenQueries(2, queryID);
 	while (!glfwWindowShouldClose(window))
@@ -718,15 +773,24 @@ int main()
 		int scrWidth, scrHeight;
 		glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 		glViewport(0, 0, scrWidth, scrHeight);
+		currentFrameIndex = fmod((currentFrameIndex + 1), 65535);
+
+
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, haltonSSBO);
 		GLvoid* haltonPointer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
 		memcpy(haltonPointer, &haltonUniform, sizeof(haltonUniform));
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-		currentFrameIndex = fmod((currentFrameIndex + 1), 65535);
+		
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightSSBO);
 		GLvoid* lightPointer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
 		memcpy(lightPointer, &lightInfo, sizeof(lightInfo));
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, debugSsrSSBO);
+		GLvoid* ssrPointer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		memcpy(ssrPointer, &debugSsr, sizeof(debugSsr));
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -789,18 +853,18 @@ int main()
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		previousProjection = projection;
-		previousfov2Projection = fov2projection;
-		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
-		projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 200] * 2 - 1;
-		projection[2][1] = haltonUniform.haltonNum[(int)(currentFrameIndex + 15) % 200] * 2 - 1;
-		projection[2][0] /= screenWidth * 4;
-		projection[2][1] /= screenHeight * 4;
+		//previousfov2Projection = fov2projection;
+		projection = glm::perspective(camera.Zoom, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.1f, 50.0f);
+		//projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 200] * 2 - 1;
+		//projection[2][1] = haltonUniform.haltonNum[(int)(currentFrameIndex + 15) % 200] * 2 - 1;
+		//projection[2][0] /= screenWidth * 4;
+		//projection[2][1] /= screenHeight * 4;
 
-		fov2projection = glm::perspective(camera.Zoom * 2, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.01f, 100.0f);
-		fov2projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 999] * 2 - 1; 
-		fov2projection[2][1] = haltonUniform.haltonNum[(int)(currentFrameIndex + 15) % 999] * 2 - 1;
-		fov2projection[2][0] /= screenWidth * 64;
-		fov2projection[2][1] /= screenHeight * 64;
+		//fov2projection = glm::perspective(camera.Zoom * 2, (GLfloat)screenWidth / (GLfloat)screenHeight, 0.1f, 100.0f);
+		//fov2projection[2][0] = haltonUniform.haltonNum[(int)currentFrameIndex % 999] * 2 - 1; 
+		//fov2projection[2][1] = haltonUniform.haltonNum[(int)(currentFrameIndex + 15) % 999] * 2 - 1;
+		//fov2projection[2][0] /= screenWidth * 64;
+		//fov2projection[2][1] /= screenHeight * 64;
 
 
 		view = camera.GetViewMatrix(); 
@@ -830,6 +894,17 @@ int main()
 
 		glDepthMask(GL_FALSE);
 
+		screenSpaceAo.update(projection, 
+			previousProjection, 
+			view, 
+			previousView, 
+			camera.Zoom, 
+			currentFrameIndex,
+			TAAscale,
+			TAAresponse,
+			flagTemporal);
+		screenSpaceAo.execute();
+
 		deferredShadingPass.update(view,
 			projection,
 			previousProjection,
@@ -847,6 +922,8 @@ int main()
 			sampleBias,
 			flagShadowMap);
 		deferredShadingPass.execute();
+
+		
 
 		
 		ssrTracePass.update(
@@ -927,7 +1004,7 @@ int main()
 			TAAresponse,
 			flagTemporal
 			);
-		//ssrFilterPass.execute();
+		ssrFilterPass.execute();
 
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1031,9 +1108,18 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, hdrColorBuffer.textureID);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, SSRHitPoint.textureID);
+		glBindTexture(GL_TEXTURE_2D, ssaoAccum.textureID);
 		toScreen.SetUniform("miplevel", (float)debugMip);
 		RenderBufferQuad();
+
+		/*
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClear(GL_DEPTH_BUFFER_BIT);	
+		debugSsrShader.Use();
+		glBindVertexArray(ssrVAO);
+		glDrawArrays(GL_POINTS, 0, 4);
+		//ourModel.getModel().Draw(debugSsrShader);
+		*/
 
 		{
 			static float f = 0.0f;

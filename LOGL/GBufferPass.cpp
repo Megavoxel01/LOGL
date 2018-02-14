@@ -11,7 +11,9 @@ GBufferPass::GBufferPass(float width, float height, Scene *scene):
 	this->gNormal = scene->getTextureMap("gNormal");
 	this->gAlbedoSpec = scene->getTextureMap("gAlbedoSpec");
 	this->rboDepth = scene->getTextureMap("rboDepth");
-
+	this->rboDepthPrev = scene->getTextureMap("rboDepthPrev");
+	this->gViewPosition = scene->getTextureMap("gViewPosition");
+	this->gViewPositionPrev = scene->getTextureMap("gViewPositionPrev");
 }
 
 GBufferPass::~GBufferPass() {
@@ -23,8 +25,9 @@ void GBufferPass::init() {
 	gBuffer.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gSpecular->textureID);
 	gBuffer.AttachTexture(1, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gNormal->textureID);
 	gBuffer.AttachTexture(2, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gAlbedoSpec->textureID);
-	GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-	gBuffer.DrawBuffer(3, attachments);
+	gBuffer.AttachTexture(3, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gViewPosition->textureID);
+	GLuint attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+	gBuffer.DrawBuffer(4, attachments);
 
 	gBuffer.AttachTexture(0, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rboDepth->textureID);
 	gBuffer.Unbind();
@@ -37,6 +40,9 @@ void GBufferPass::update(const glm::mat4& view, const glm::mat4& projection, std
 }
 
 void GBufferPass::execute() {
+	glCopyImageSubData(rboDepth->textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
+		rboDepthPrev->textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
+		mWidth, mHeight, 1);
 	gBuffer.Bind();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//previousView = view;
@@ -90,8 +96,8 @@ void GBufferPass::execute() {
 	shaderGeometryPass.SetUniform("model", model);
 	shaderGeometryPass.SetUniform("projection", projection);
 	shaderGeometryPass.SetUniform("view", view);
-	flagGloss = 0;
-	flagMetallic = 1;
+	flagGloss = 1;
+	flagMetallic = 0;
 	shaderGeometryPass.SetUniform("flagGloss", flagGloss);
 	shaderGeometryPass.SetUniform("flagMetallic", flagMetallic);
 	shaderGeometryPass.SetUniform("hasNormal", true);
@@ -109,4 +115,5 @@ void GBufferPass::execute() {
 	glDisable(GL_CULL_FACE);
 	RenderQuad();
 	glEnable(GL_CULL_FACE);
+
 }

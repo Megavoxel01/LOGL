@@ -84,6 +84,9 @@
     <ClCompile Include="IblSpecularPass.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="ScreenSpaceAO.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.frag" />

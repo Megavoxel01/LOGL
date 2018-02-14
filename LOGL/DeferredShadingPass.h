@@ -49,6 +49,7 @@ private:
 	TextureMap *prevColorFrame1;
 	TextureMap *blueNoiseTex;
 	TextureMap *BRDFLut;
+	TextureMap *ssaoColor;
 	Scene *scene;
 	glm::vec3 viewPos;
 

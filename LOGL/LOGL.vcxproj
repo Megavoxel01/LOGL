@@ -86,6 +86,7 @@
     <ClCompile Include="includes\imgui.cpp" />
     <ClCompile Include="LightCullingPass.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ScreenSpaceAO.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="SsrCombinePass.cpp" />
     <ClCompile Include="SsrFilterPass.cpp" />

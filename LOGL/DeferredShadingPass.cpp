@@ -17,6 +17,7 @@ DeferredShadingPass::DeferredShadingPass(float width, float height, float workGr
 	this->prevColorFrame1 = scene->getTextureMap("prevColorFrame1");
 	this->blueNoiseTex = scene->getTextureMap("blueNoiseTex");
 	this->BRDFLut = scene->getTextureMap("BRDFLut");
+	this->ssaoColor = scene->getTextureMap("ssaoColor");
 }
 
 DeferredShadingPass::~DeferredShadingPass(){
@@ -36,6 +37,7 @@ void DeferredShadingPass::init(){
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "blueNoise"), 6);
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "BRDFLut"), 7);
 	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "irradianceMap"), 8);
+	glUniform1i(glGetUniformLocation(shaderLightingPass.Program, "occlusion"), 9);
 
 	linearFBO.Bind();
 	linearFBO.AttachTexture(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, linearColorBuffer->textureID);
@@ -59,7 +61,8 @@ void DeferredShadingPass::update(
 	const float& initStep,
 	const float& sampleBias,
 	const bool& flagShadowMap
-	){
+	)
+{
 	linearFBO.Bind();
 	shaderLightingPass.Use();
 	shaderLightingPass.SetUniform("flagShadowMap", flagShadowMap);
@@ -100,8 +103,9 @@ void DeferredShadingPass::update(
 	glBindTexture(GL_TEXTURE_2D, BRDFLut->textureID);
 	glActiveTexture(GL_TEXTURE8);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
-
-
+	shaderLightingPass.BindTexture(9, ssaoColor->textureID, "ssaoColor");
+	//glActiveTexture(GL_TEXTURE9);
+	//glBindTexture(GL_TEXTURE_2D, ssaoColor->textureID);
 
 
 	glUniformMatrix4fv(glGetUniformLocation(shaderLightingPass.Program, "LightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
