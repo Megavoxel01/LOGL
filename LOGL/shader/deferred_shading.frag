@@ -11,6 +11,7 @@ uniform sampler2D prevFrame1;
 uniform sampler2D blueNoise;
 uniform sampler2D BRDFLut;
 uniform samplerCube irradianceMap;
+uniform sampler2D ssaoColor;
 uniform bool flagShadowMap;
 uniform float extRand1;
 uniform float resolve;
@@ -145,6 +146,16 @@ vec4 TangentToWorld(vec3 N, vec4 H)
     return vec4((T * H.x) + (B * H.y) + (N * H.z), H.w);
 }
 
+vec3 AoMultiBounce(float ao, vec3 albedo)
+{
+    vec3 x = vec3(ao);
+
+    vec3 a = 2.0404 * albedo - vec3(0.3324);
+    vec3 b = -4.7951 * albedo + vec3(0.6417);
+    vec3 c = 2.7552 * albedo + vec3(0.6903);
+
+    return max(x, ((x * a + b) * x + c) * x);
+}
 
 vec3 SchlickFresnel(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec3 specStrength)
 {
@@ -352,7 +363,9 @@ void main()
 
     vec3 irradiance = texture(irradianceMap, wsNormal).rgb;
     irradiance *=vec3(1.0) - SchlickFresnel(vsLDir,vsViewDir, vsNormal, Gloss, Specular);
-    lighting += Albedo * irradiance*0.1;
+    float occlusion = texture(ssaoColor, TexCoords).x;
+    float aoMultiBounce = AoMultiBounce(occlusion, Albedo).x * 1.5;
+    lighting += Albedo * irradiance * aoMultiBounce;
 
 
 
@@ -361,6 +374,6 @@ void main()
     //FragColor = vec4((vec3(i)/float(NR_LIGHTS)), 1.0f);
     //if(Gloss<0.4f)
         //FragColor=SSR(FragPos,Normal, viewDir);
-    if(Albedo.x>=1.0f) FragColor=vec4(3,3,3,1);
+    //if(Albedo.x>=1.0f) FragColor=vec4(3,3,3,1);
 }
 

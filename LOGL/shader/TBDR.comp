@@ -119,7 +119,7 @@ void main() {
 
 		vec4 position = lightBuffer.lights[lightIndex].Position;
 		//float radius = lightBuffer.data[lightIndex].paddingAndRadius.w;
-		float radius = 10.0f;
+		float radius = 20.0f;
 
 		// We check if the light exists in our frustum
 		float distance = 0.0;

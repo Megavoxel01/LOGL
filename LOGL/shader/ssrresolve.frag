@@ -94,17 +94,17 @@ vec2(-2.0f, -3.0f),
 vec2(1.0f, -3.0f)
     );
 
-/*
-const vec2 offset[28]=vec2[](
+
+/*const vec2 offset[28]=vec2[](
 vec2(0, 0),
-vec2(-1.0f, 1.0f),
 vec2(-1.0f, 0.0f),
+vec2(1.0f, 0.0f),
 vec2(0, 1.0f),
 
-vec2(1.0f, 0.0f),
-vec2(1.0f, 0.0f),
+vec2(0.0f, -1.0f),
+vec2(1.0f, 1.0f),
 vec2(1.0f, -1.0f),
-vec2(1.0f, -1.0f),
+vec2(-1.0f, 1.0f),
 
 vec2(0.0f, 1.0f),
 vec2(-1.0f, 1.0f),
@@ -302,7 +302,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
     float samplenum=numSamples;
     //float coneTangent = mix(0.0, roughness*(1.0-sampleBias), pow(dot(normalize(wsNormal),normalize(viewDir)), 1.5) * sqrt(roughness));
     //radius=coneTangent;
-    float coneTangent=mix(clamp(0.0f, 1.0f, 0.2f*dot(normalize(wsNormal),normalize(-viewDir))), 0.4f, sqrt(roughness))*0.01f;
+    float coneTangent=mix(clamp(0.0f, 1.0f, 0.2f*dot(normalize(wsNormal),normalize(-viewDir))), 0.6f, sqrt(roughness));
     float flag=0;
 
     vec3 refColor=vec3(0);
@@ -359,10 +359,8 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
             vec3 neighbourBRDF=SsrBRDF(viewDir,hitPoint_WS.xyz - wsPosition ,wsNormal,roughness,specStrength);
             //return vec4(prevUV,1,1);
             //return vec4(vec3(neighbourBRDF),1);
-            float intersectionCircleRadius = coneTangent * length(prevUV - TexCoords);
-            radius=log2(intersectionCircleRadius * max(screenWidth,screenHeight));
-            radius/=100;
-            float mip = clamp(log2(intersectionCircleRadius * max(screenWidth,screenHeight)), 0.0, 6.0);
+            float intersectionCircleRadius = coneTangent * length(prevUV - TexCoords) * 5;
+            float mip = clamp(log2(intersectionCircleRadius ), 0.0, 10.0);
             //mip=0;
             if(neighbourUV.x>=1.0||neighbourUV.y>=1.0||neighbourUV.x<=0||neighbourUV.y<=0)
             {
@@ -377,7 +375,7 @@ vec4 SSRef1(vec3 wsPosition, vec3 wsNormal, vec3 viewDir,float roughness, vec3 s
 
             neightbourColor.rgb/=1+Luminance(neightbourColor.rgb);
             //return vec4(neightbourColor, 1);
-            vec3 neighbourISPdf=neighbourBRDF/max(1e-7,neighbourPDF);
+            vec3 neighbourISPdf= step(1e-7, neighbourPDF) * neighbourBRDF/max(1e-7,neighbourPDF);
             neighcolorSum+=min(neightbourColor*neighbourISPdf, INF);
             weightSum+=neighbourISPdf;  
         }
@@ -404,10 +402,15 @@ void main()
     vec3 FragPos = WorldPosFromDepth();
     vec3 Normal = texture(gNormal, TexCoords).rgb;
     float Gloss=texture(gNormal, TexCoords).a;
+
     //tempRoughness=Gloss;
     vec3 Diffuse = texture(gAlbedoSpec, TexCoords).rgb;
     //Diffuse=vec3(1,0,0);
     vec3 Specular = texture(gSpecular, TexCoords).rgb;
+    if(dot(vec3(1.0), Specular)<1e-6){
+        FragColor.xyzw = vec4(0, 0, 0, 1);
+        return;
+    }
     vec4 fragPosLightSpace=LightSpaceMatrix*vec4(FragPos,1.0f);
     vec3 lighting = vec3(0.0f);
     vec3 viewDir  = normalize(viewPos - FragPos);

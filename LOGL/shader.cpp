@@ -63,7 +63,8 @@ void Shader::BindTexture(int slot, GLint texID, GLchar* name) const
 {
 	glActiveTexture(GL_TEXTURE0+slot);
 	glBindTexture(GL_TEXTURE_2D, texID);
-	glUniform1i(glGetUniformLocation(this->Program, name), slot);
+	const auto loc = glGetUniformLocation(this->Program, name);
+	glUniform1i(loc, slot);
 }
 
 
