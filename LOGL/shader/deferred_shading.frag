@@ -5,7 +5,7 @@ in vec2 TexCoords;
 uniform sampler2D gSpecular;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
-uniform sampler2D shadowMap;
+uniform sampler2DArray shadowMap;
 uniform sampler2D sceneDepth;
 uniform sampler2D prevFrame1;
 uniform sampler2D blueNoise;
@@ -18,6 +18,8 @@ uniform float resolve;
 uniform float binaryIteration;
 uniform float inputStride;
 uniform int numberOfTilesX;
+uniform mat4 textureMatrixList[3];
+uniform vec4 farbounds;
 
 
 //uniform float tempRoughness;
@@ -200,7 +202,7 @@ vec3 PhysicalBRDF(vec3 lightDir, vec3 viewDir, vec3 normal, float roughness, vec
         return specular*F*Lambda_GGXV*Lambda_GGXL;
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace,vec3 FragPos,vec3 Normal)
+/*float ShadowCalculation(vec4 fragPosLightSpace,vec3 FragPos,vec3 Normal)
 {
 
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -232,7 +234,7 @@ float ShadowCalculation(vec4 fragPosLightSpace,vec3 FragPos,vec3 Normal)
     //float shadow = currentDepth-bias > closestDepth  ? 1.0 : 0.0;
     
     return shadow;
-}
+}*/
 
 
 // By Morgan McGuire and Michael Mara at Williams College 2014
@@ -296,6 +298,37 @@ bool rayIntersectsDepthBF1( float zA, float zB, vec2 uv, float zThickness)
     return zB <= cameraZ && zA >= cameraZ-zThickness;
 }
 
+float getCsm(vec4 position){
+  int index = 3;
+  // find the appropriate depth map to look up in based on the depth of this fragment
+  if(gl_FragCoord.z < farbounds.x) {
+    index = 0;
+  } else if(gl_FragCoord.z < farbounds.y) {
+    index = 1;
+  } else if(gl_FragCoord.z < farbounds.z) {
+    index = 2;
+  }
+
+  // transform this fragment's position from view space to scaled light clip space
+  // such that the xy coordinates are in [0;1]
+  // note there is no need to divide by w for othogonal light sources
+  vec4 shadow_coord = textureMatrixList[index] * position;
+
+  shadow_coord.w = shadow_coord.z;
+  
+  // tell glsl in which layer to do the look up
+  shadow_coord.z = float(index);
+  
+  // get the stored depth
+  float shadow_d = texture(shadowMap, shadow_coord.xyz).x;
+  
+  // get the difference of the stored depth and the distance of this fragment to the light
+  float diff = shadow_d - shadow_coord.w;
+  
+  // smoothen the result a bit, to avoid aliasing at shadow contact point
+  return clamp(diff * 250.0 + 1.0, 0.0, 1.0);
+}
+
 
 
 
@@ -326,9 +359,7 @@ void main()
     vec3 lighting = vec3(0.0f);
     vec3 vsViewDir  = normalize((ViewMatrix * vec4(viewPos, 1.0f)).xyz - (ViewMatrix * vec4(FragPos, 1.0f)).xyz);
     float shadow=0.0f;
-    if(flagShadowMap)
-        shadow = ShadowCalculation(fragPosLightSpace, vsFragPos,vsNormal);                      
-    shadow = min(shadow, 0.75); // reduce shadow strength a little: allow some diffuse/specular light in shadowed regions
+    shadow = getCsm(ViewMatrix * vec4(FragPos, 1.0f));
     //lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
     vec3 specular;
     vec3 diffuse;
@@ -369,7 +400,7 @@ void main()
 
 
 
-    FragColor = vec4((1.0f-shadow)*lighting, 1.0f);
+    FragColor = vec4((shadow)*lighting, 1.0f);
     
     //FragColor = vec4((vec3(i)/float(NR_LIGHTS)), 1.0f);
     //if(Gloss<0.4f)

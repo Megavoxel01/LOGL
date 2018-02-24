@@ -1,6 +1,7 @@
 #pragma once
 
 #include <RenderPass.h>
+#include <ShadowMapping.h>
 #include <random>
 
 class DeferredShadingPass : public RenderPass{
@@ -24,7 +25,8 @@ public:
 		const int& depthLevel,
 		const float& initStep,
 		const float& sampleBias,
-		const bool& flagShadowMap
+		const bool& flagShadowMap,
+		const ShadowMapping& csmPass
 		);
 	void execute();
 
@@ -50,6 +52,7 @@ private:
 	TextureMap *blueNoiseTex;
 	TextureMap *BRDFLut;
 	TextureMap *ssaoColor;
+	GLuint csmInt;
 	Scene *scene;
 	glm::vec3 viewPos;
 

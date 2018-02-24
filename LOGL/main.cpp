@@ -32,13 +32,14 @@
 #include <IblDiffusePass.h>
 #include <IblSpecularPass.h>
 #include <ScreenSpaceAO.h>
+#include <ShadowMapping.h>
 
 
 
 
 
 
-const GLuint screenWidth = 1280, screenHeight = 720;
+const GLuint screenWidth = 1600, screenHeight = 900;
 
 GLboolean shadows = true;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -662,6 +663,9 @@ int main()
 	glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
 	glViewport(0, 0, scrWidth, scrHeight);
 
+	ShadowMapping shadowMappingPass(&camera, scene.get());
+	shadowMappingPass.init();
+
 	GBufferPass gBufferPass(screenWidth, screenHeight, scene.get());
 	gBufferPass.init();
 
@@ -822,7 +826,7 @@ int main()
 
 		if (flagShadowMap)
 		{
-			simpleDepthShader.Use();
+			/*simpleDepthShader.Use();
 			glm::mat4 model11;
 			//GLint aaa=glGetUniformLocation(simpleDepthShader.Program, "lightSpaceMatrix");
 			//glUniformMatrix4fv(aaa, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
@@ -846,8 +850,10 @@ int main()
 				ourModel.getModel().Draw(simpleDepthShader);
 			}
 			glCullFace(GL_BACK);
-			depthMapFBO.Unbind();
+			depthMapFBO.Unbind();*/
 		}
+		shadowMappingPass.update(projection, view, lightPos, &camera, objectPositions);
+		shadowMappingPass.execute();
 		glViewport(0, 0, screenWidth, screenHeight);
 		//glDepthRange(0.0, 0.999);
 		glEnable(GL_CULL_FACE);
@@ -920,7 +926,8 @@ int main()
 			depthLevel,
 			initStep,
 			sampleBias,
-			flagShadowMap);
+			flagShadowMap,
+			shadowMappingPass);
 		deferredShadingPass.execute();
 
 		
@@ -1105,10 +1112,12 @@ int main()
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		toScreen.Use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, hdrColorBuffer.textureID);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, ssaoAccum.textureID);
+		toScreen.BindTexture(0, hdrColorBuffer.textureID, "hdrBuffer");
+		toScreen.BindTexture(1, ssaoAccum.textureID, "debugBuffer");
+		//toScreen.BindTexture(2, shadowMappingPass.m_texture_array, "array");
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMappingPass.m_texture_array);
+		glUniform1i(glGetUniformLocation(toScreen.Program, "array"), 2);
 		toScreen.SetUniform("miplevel", (float)debugMip);
 		RenderBufferQuad();
 
