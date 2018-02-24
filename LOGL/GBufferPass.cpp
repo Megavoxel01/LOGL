@@ -40,10 +40,11 @@ void GBufferPass::update(const glm::mat4& view, const glm::mat4& projection, std
 }
 
 void GBufferPass::execute() {
+
+	gBuffer.Bind();
 	glCopyImageSubData(rboDepth->textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
 		rboDepthPrev->textureID, GL_TEXTURE_2D, 0, 0, 0, 0,
 		mWidth, mHeight, 1);
-	gBuffer.Bind();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//previousView = view;
 	glm::mat4 model;

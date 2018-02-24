@@ -60,9 +60,11 @@ void DeferredShadingPass::update(
 	const int& depthLevel,
 	const float& initStep,
 	const float& sampleBias,
-	const bool& flagShadowMap
+	const bool& flagShadowMap,
+	const ShadowMapping& csmPass
 	)
 {
+	this->csmInt = csmInt;
 	linearFBO.Bind();
 	shaderLightingPass.Use();
 	shaderLightingPass.SetUniform("flagShadowMap", flagShadowMap);
@@ -83,6 +85,8 @@ void DeferredShadingPass::update(
 	shaderLightingPass.SetUniform("numberOfTilesX", mWorkGroupsX);
 	shaderLightingPass.SetUniform("directionLightDir", glm::vec3(0, 1, 1));
 	shaderLightingPass.SetUniform("directionLightColor", glm::vec4(0,0,0,1));
+	glUniformMatrix4fv(glGetUniformLocation(shaderLightingPass.Program, "textureMatrixList"), csmPass.m_num_splits, GL_FALSE, glm::value_ptr(csmPass.m_texture_matrices[0]));
+	glUniform4fv(glGetUniformLocation(shaderLightingPass.Program, "farbounds"), 1, &csmPass.m_far_bounds[0]);
 	//shaderLightingPass.SetUniform("directionLightColor", glm::vec4(245.0/256.0, 208.0/256.0, 129.0/256.0, 1));
 
 	glActiveTexture(GL_TEXTURE0);
@@ -92,7 +96,8 @@ void DeferredShadingPass::update(
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec->textureID);
 	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, depthMap->textureID);
+	//glBindTexture(GL_TEXTURE_2D, depthMap->textureID);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, csmPass.m_texture_array);
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, rboDepth->textureID);
 	glActiveTexture(GL_TEXTURE5);
